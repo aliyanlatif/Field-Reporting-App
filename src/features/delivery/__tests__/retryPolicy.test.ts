@@ -47,16 +47,16 @@ describe('backoffDelayMs', () => {
     expect(backoffDelayMs(3, undefined, () => 1)).toBe(8_000);
   });
 
-  test('is capped at five minutes', () => {
-    expect(backoffDelayMs(50, undefined, () => 1)).toBe(300_000);
-    expect(backoffDelayMs(50, undefined, () => 0)).toBe(150_000);
+  test('is capped at one minute', () => {
+    expect(backoffDelayMs(50, undefined, () => 1)).toBe(60_000);
+    expect(backoffDelayMs(50, undefined, () => 0)).toBe(30_000);
   });
 
   test('stays within bounds for any random value', () => {
     for (let attempt = 1; attempt <= 12; attempt++) {
       const delay = backoffDelayMs(attempt);
       expect(delay).toBeGreaterThanOrEqual(1_000);
-      expect(delay).toBeLessThanOrEqual(300_000);
+      expect(delay).toBeLessThanOrEqual(60_000);
     }
   });
 

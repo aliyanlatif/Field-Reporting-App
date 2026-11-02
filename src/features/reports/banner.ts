@@ -36,7 +36,7 @@ export function deriveBanner(
       ? null
       : {
           tone: 'warning',
-          message: `${plural(failed)} could not be sent. Open it to retry`,
+          message: `${plural(failed)} could not be sent. Tap Retry sending`,
         };
   }
   if (!uploading && retrying) {

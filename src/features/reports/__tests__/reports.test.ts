@@ -58,12 +58,12 @@ describe('describeLocalReport', () => {
   test('a report that failed an attempt says it will retry and why', () => {
     expect(
       describeLocalReport(
-        local({ attempts: 2, failureReason: 'No connection' }),
+        local({ attempts: 2, failureReason: "Couldn't reach the server" }),
       ),
     ).toEqual({
       tone: 'warning',
       label: 'Waiting to retry',
-      detail: 'No connection',
+      detail: "Couldn't reach the server",
     });
   });
 
@@ -133,11 +133,11 @@ describe('deriveBanner', () => {
     expect(deriveBanner(true, [local({ status: 'uploaded' })])).toBeNull();
   });
 
-  test('online with only failed reports asks the user to open one', () => {
+  test('online with only failed reports points to the retry button', () => {
     expect(deriveBanner(true, [local({ status: 'failed_permanent' })])).toEqual(
       {
         tone: 'warning',
-        message: '1 report could not be sent. Open it to retry',
+        message: '1 report could not be sent. Tap Retry sending',
       },
     );
   });
