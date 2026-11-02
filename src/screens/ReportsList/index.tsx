@@ -16,7 +16,10 @@ export function ReportsListScreen({ navigation }: Props) {
           Reports you file will appear here.
         </AppText>
       </View>
-      <Button label="New report" onPress={() => navigation.navigate('ComposeReport')} />
+      <Button
+        label="New report"
+        onPress={() => navigation.navigate('ComposeReport')}
+      />
     </Screen>
   );
 }
