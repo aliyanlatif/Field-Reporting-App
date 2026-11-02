@@ -1,2 +1,7 @@
 export { subscribeToQueueChanges } from './queueEvents';
-export { retryReport, startDelivery, triggerDelivery } from './runtime';
+export {
+  resetAll,
+  retryReport,
+  startDelivery,
+  triggerDelivery,
+} from './runtime';

@@ -2,11 +2,12 @@ import { getReportRepository } from '../../db';
 import {
   createQueueWorker,
   QueueWorker,
+  resetEverything,
   startTriggers,
 } from '../../features/delivery';
 import { api } from '../api';
 import { subscribeToForeground } from '../appLifecycle';
-import { deleteFiles, removeOrphanedFiles } from '../images';
+import { deleteFiles, removeAllImages, removeOrphanedFiles } from '../images';
 import { subscribeToConnectivity } from '../network';
 import { notifyQueueChanged } from './queueEvents';
 
@@ -49,4 +50,14 @@ export async function retryReport(reportId: string) {
   await (await getReportRepository()).requeue(reportId);
   notifyQueueChanged();
   await triggerDelivery();
+}
+
+export async function resetAll() {
+  await resetEverything({
+    worker: await getWorker(),
+    api,
+    repository: await getReportRepository(),
+    removeLocalImages: removeAllImages,
+  });
+  notifyQueueChanged();
 }

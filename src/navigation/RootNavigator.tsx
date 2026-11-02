@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ComposeReportScreen } from '../screens/ComposeReport';
 import { ReportDetailScreen } from '../screens/ReportDetail';
 import { ReportsListScreen } from '../screens/ReportsList';
+import { StartOverButton } from '../screens/ReportsList/components/StartOverButton';
 import { useReportsSync } from '../hooks';
 import { colors } from '../theme';
 import { RootStackParamList } from './types';
@@ -23,7 +24,7 @@ export function RootNavigator() {
       <Stack.Screen
         name="ReportsList"
         component={ReportsListScreen}
-        options={{ title: 'Field reports' }}
+        options={{ title: 'Field reports', headerRight: StartOverButton }}
       />
       <Stack.Screen
         name="ComposeReport"

@@ -21,6 +21,7 @@ export interface ProcessOptions {
 export interface QueueWorker {
   start(): Promise<void>;
   processQueue(options?: ProcessOptions): Promise<void>;
+  runExclusive<T>(task: () => Promise<T>): Promise<T>;
   stop(): void;
 }
 
@@ -35,6 +36,7 @@ export function createQueueWorker({
   let inFlight: Promise<void> | null = null;
   let rerunRequested = false;
   let rerunIgnoresBackoff = false;
+  let paused = false;
   let wakeTimer: ReturnType<typeof setTimeout> | null = null;
 
   const clearWake = () => {
@@ -88,6 +90,9 @@ export function createQueueWorker({
   async function drain(ignoreBackoff: boolean) {
     const attempted = new Set<string>();
     for (;;) {
+      if (paused) {
+        return;
+      }
       const due = await repository.findDue(
         ignoreBackoff ? Number.MAX_SAFE_INTEGER : now(),
       );
@@ -128,6 +133,9 @@ export function createQueueWorker({
   }
 
   function processQueue({ ignoreBackoff = false }: ProcessOptions = {}) {
+    if (paused) {
+      return Promise.resolve();
+    }
     if (inFlight) {
       rerunRequested = true;
       rerunIgnoresBackoff ||= ignoreBackoff;
@@ -144,5 +152,18 @@ export function createQueueWorker({
     },
     processQueue,
     stop: clearWake,
+
+    /** Runs a task while no delivery is active or can start, then lets delivery resume. */
+    async runExclusive(task) {
+      paused = true;
+      clearWake();
+      try {
+        await inFlight;
+        return await task();
+      } finally {
+        paused = false;
+        processQueue();
+      }
+    },
   };
 }

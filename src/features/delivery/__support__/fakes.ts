@@ -54,6 +54,17 @@ export class FakeApi implements ReportsApi {
     completeReport: [],
   };
 
+  private readonly gates: Partial<Record<Method, Promise<void>>> = {};
+
+  /** Makes the next call to `method` wait until the returned function is called. */
+  hold(method: Method) {
+    let release = () => {};
+    this.gates[method] = new Promise<void>(resolve => {
+      release = resolve;
+    });
+    return release;
+  }
+
   script(method: Method, ...outcomes: Outcome[]) {
     this.scripted[method].push(...outcomes);
   }
@@ -64,6 +75,9 @@ export class FakeApi implements ReportsApi {
 
   private async run(method: Method, label: string, apply: () => void) {
     this.calls.push(label);
+    const gate = this.gates[method];
+    delete this.gates[method];
+    await gate;
     const outcome = this.scripted[method].shift();
     if (outcome instanceof ApiError) {
       throw outcome;

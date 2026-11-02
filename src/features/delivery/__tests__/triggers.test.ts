@@ -5,6 +5,7 @@ function setup() {
   const worker: jest.Mocked<QueueWorker> = {
     start: jest.fn().mockResolvedValue(undefined),
     processQueue: jest.fn().mockResolvedValue(undefined),
+    runExclusive: jest.fn(),
     stop: jest.fn(),
   };
   let foreground = () => {};
