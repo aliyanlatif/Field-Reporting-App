@@ -1,0 +1,1 @@
+export { subscribeToConnectivity } from './connectivity';
