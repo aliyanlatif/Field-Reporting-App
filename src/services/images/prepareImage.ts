@@ -1,7 +1,6 @@
-import 'react-native-get-random-values';
 import { Image as Compressor } from 'react-native-compressor';
-import { v4 as uuid } from 'uuid';
 import { NewImage } from '../../types';
+import { createId } from '../../utils/id';
 import { compressToBudget } from './compressImage';
 import {
   fileSize,
@@ -29,7 +28,7 @@ export async function prepareImage(sourceUri: string): Promise<NewImage> {
     fileSize,
     remove: removeFile,
   });
-  const id = uuid();
+  const id = createId();
   const localUri = await moveIntoStorage(compressed.uri, id);
   await removeCachedOriginal(sourceUri);
   return { id, localUri, sizeBytes: compressed.sizeBytes };
