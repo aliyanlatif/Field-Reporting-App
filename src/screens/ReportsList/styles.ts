@@ -2,10 +2,9 @@ import { StyleSheet } from 'react-native';
 import { spacing } from '../../theme';
 
 export const styles = StyleSheet.create({
-  empty: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-  },
+  list: { flex: 1 },
+  content: { paddingBottom: spacing.md },
+  sectionTitle: { marginBottom: spacing.sm },
+  separator: { height: spacing.sm },
+  sectionGap: { height: spacing.lg },
 });

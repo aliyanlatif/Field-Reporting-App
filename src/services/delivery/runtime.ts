@@ -44,3 +44,9 @@ export async function startDelivery() {
 export async function triggerDelivery() {
   await (await getWorker()).processQueue({ ignoreBackoff: true });
 }
+
+export async function retryReport(reportId: string) {
+  await (await getReportRepository()).requeue(reportId);
+  notifyQueueChanged();
+  await triggerDelivery();
+}

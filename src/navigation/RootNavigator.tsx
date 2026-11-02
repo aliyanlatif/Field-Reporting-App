@@ -2,12 +2,15 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ComposeReportScreen } from '../screens/ComposeReport';
 import { ReportDetailScreen } from '../screens/ReportDetail';
 import { ReportsListScreen } from '../screens/ReportsList';
+import { useReportsSync } from '../hooks';
 import { colors } from '../theme';
 import { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
+  useReportsSync();
+
   return (
     <Stack.Navigator
       initialRouteName="ReportsList"

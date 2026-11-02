@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { View } from 'react-native';
 import { Edge, SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBanner } from '../StatusBanner';
 import { styles } from './styles';
 
 interface ScreenProps {
@@ -14,6 +15,7 @@ export function Screen({
 }: ScreenProps) {
   return (
     <SafeAreaView edges={edges} style={styles.safeArea}>
+      <StatusBanner />
       <View style={styles.content}>{children}</View>
     </SafeAreaView>
   );
