@@ -1,4 +1,8 @@
-export type ReportStatus = 'queued' | 'uploading' | 'uploaded' | 'failed_permanent';
+export type ReportStatus =
+  | 'queued'
+  | 'uploading'
+  | 'uploaded'
+  | 'failed_permanent';
 
 export type ImageStatus = 'pending' | 'uploading' | 'uploaded' | 'failed';
 
@@ -6,7 +10,7 @@ export interface LocalImage {
   id: string;
   reportId: string;
   position: number;
-  localPath: string;
+  localUri: string;
   sizeBytes: number;
   status: ImageStatus;
 }
@@ -24,7 +28,7 @@ export interface LocalReport {
 
 export interface NewImage {
   id: string;
-  localPath: string;
+  localUri: string;
   sizeBytes: number;
 }
 

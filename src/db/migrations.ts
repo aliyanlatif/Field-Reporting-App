@@ -15,7 +15,7 @@ const migrations: string[][] = [
       id TEXT PRIMARY KEY NOT NULL,
       report_id TEXT NOT NULL REFERENCES reports(id) ON DELETE CASCADE,
       position INTEGER NOT NULL,
-      local_path TEXT NOT NULL,
+      local_uri TEXT NOT NULL,
       size_bytes INTEGER NOT NULL,
       status TEXT NOT NULL
     )`,
@@ -24,10 +24,15 @@ const migrations: string[][] = [
   ],
 ];
 
-type MigrationTarget = Pick<NitroSQLiteConnection, 'executeAsync' | 'executeBatchAsync'>;
+type MigrationTarget = Pick<
+  NitroSQLiteConnection,
+  'executeAsync' | 'executeBatchAsync'
+>;
 
 export async function runMigrations(db: MigrationTarget) {
-  const result = await db.executeAsync<{ user_version: number }>('PRAGMA user_version');
+  const result = await db.executeAsync<{ user_version: number }>(
+    'PRAGMA user_version',
+  );
   const current = result.rows._array[0]?.user_version ?? 0;
 
   for (let version = current; version < migrations.length; version++) {

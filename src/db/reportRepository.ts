@@ -2,7 +2,10 @@ import { NitroSQLiteConnection } from 'react-native-nitro-sqlite';
 import { ReportRepository } from '../types';
 import { ImageRow, ReportRow, toLocalImage, toLocalReport } from './rowMapping';
 
-export type Database = Pick<NitroSQLiteConnection, 'executeAsync' | 'executeBatchAsync'>;
+export type Database = Pick<
+  NitroSQLiteConnection,
+  'executeAsync' | 'executeBatchAsync'
+>;
 
 export function createReportRepository(db: Database): ReportRepository {
   async function load(where = '', params: (string | number)[] = []) {
@@ -45,12 +48,12 @@ export function createReportRepository(db: Database): ReportRepository {
         },
         {
           query:
-            "INSERT INTO images (id, report_id, position, local_path, size_bytes, status) VALUES (?, ?, ?, ?, ?, 'pending')",
+            "INSERT INTO images (id, report_id, position, local_uri, size_bytes, status) VALUES (?, ?, ?, ?, ?, 'pending')",
           params: images.map((image, position) => [
             image.id,
             id,
             position,
-            image.localPath,
+            image.localUri,
             image.sizeBytes,
           ]),
         },
@@ -64,9 +67,20 @@ export function createReportRepository(db: Database): ReportRepository {
     list: () => load(),
 
     findDue: now =>
-      load("WHERE status = 'queued' AND (next_attempt_at IS NULL OR next_attempt_at <= ?)", [now]),
+      load(
+        "WHERE status = 'queued' AND (next_attempt_at IS NULL OR next_attempt_at <= ?)",
+        [now],
+      ),
 
-    markUploading: id => run("UPDATE reports SET status = 'uploading' WHERE id = ?", [id]),
+    async nextAttemptAt() {
+      const result = await db.executeAsync<{ next: number | null }>(
+        "SELECT MIN(next_attempt_at) AS next FROM reports WHERE status = 'queued' AND next_attempt_at IS NOT NULL",
+      );
+      return result.rows._array[0]?.next ?? null;
+    },
+
+    markUploading: id =>
+      run("UPDATE reports SET status = 'uploading' WHERE id = ?", [id]),
 
     markImage: (imageId, status) =>
       run('UPDATE images SET status = ? WHERE id = ?', [status, imageId]),
@@ -78,10 +92,10 @@ export function createReportRepository(db: Database): ReportRepository {
       ),
 
     markFailedPermanent: (id, reason) =>
-      run("UPDATE reports SET status = 'failed_permanent', failure_reason = ? WHERE id = ?", [
-        reason,
-        id,
-      ]),
+      run(
+        "UPDATE reports SET status = 'failed_permanent', failure_reason = ? WHERE id = ?",
+        [reason, id],
+      ),
 
     markUploaded: id =>
       run(
@@ -97,7 +111,8 @@ export function createReportRepository(db: Database): ReportRepository {
           params: [id],
         },
         {
-          query: "UPDATE images SET status = 'pending' WHERE report_id = ? AND status = 'failed'",
+          query:
+            "UPDATE images SET status = 'pending' WHERE report_id = ? AND status = 'failed'",
           params: [id],
         },
       ]);
@@ -105,8 +120,14 @@ export function createReportRepository(db: Database): ReportRepository {
 
     async recoverInterrupted() {
       await db.executeBatchAsync([
-        { query: "UPDATE images SET status = 'pending' WHERE status = 'uploading'" },
-        { query: "UPDATE reports SET status = 'queued' WHERE status = 'uploading'" },
+        {
+          query:
+            "UPDATE images SET status = 'pending' WHERE status = 'uploading'",
+        },
+        {
+          query:
+            "UPDATE reports SET status = 'queued' WHERE status = 'uploading'",
+        },
       ]);
     },
 

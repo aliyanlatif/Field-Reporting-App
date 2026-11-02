@@ -1,15 +1,11 @@
-import {
-  ImageStatus,
-  LocalReport,
-  NewReport,
-  RetrySchedule,
-} from './report';
+import { ImageStatus, LocalReport, NewReport, RetrySchedule } from './report';
 
 export interface ReportRepository {
   create(report: NewReport): Promise<void>;
   get(id: string): Promise<LocalReport | null>;
   list(): Promise<LocalReport[]>;
   findDue(now: number): Promise<LocalReport[]>;
+  nextAttemptAt(): Promise<number | null>;
   markUploading(id: string): Promise<void>;
   markImage(imageId: string, status: ImageStatus): Promise<void>;
   scheduleRetry(id: string, retry: RetrySchedule): Promise<void>;

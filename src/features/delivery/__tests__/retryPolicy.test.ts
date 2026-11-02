@@ -2,7 +2,13 @@ import { ApiError } from '../../../types';
 import { backoffDelayMs, isRetryable } from '../retryPolicy';
 
 const http = (status: number, code?: string, retryAfterMs?: number) =>
-  new ApiError({ kind: 'http', status, code, message: `HTTP ${status}`, retryAfterMs });
+  new ApiError({
+    kind: 'http',
+    status,
+    code,
+    message: `HTTP ${status}`,
+    retryAfterMs,
+  });
 
 describe('isRetryable', () => {
   test.each([
@@ -51,6 +57,8 @@ describe('backoffDelayMs', () => {
   });
 
   test('honours a longer Retry-After from the server', () => {
-    expect(backoffDelayMs(1, http(429, undefined, 60_000), () => 1)).toBe(60_000);
+    expect(backoffDelayMs(1, http(429, undefined, 60_000), () => 1)).toBe(
+      60_000,
+    );
   });
 });

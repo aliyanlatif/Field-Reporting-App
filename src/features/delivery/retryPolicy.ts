@@ -22,8 +22,15 @@ export function isRetryable(error: unknown) {
 }
 
 /** Exponential backoff with half jitter, never shorter than a server's Retry-After. */
-export function backoffDelayMs(attempt: number, error?: unknown, random = Math.random) {
-  const ceiling = Math.min(MAX_DELAY_MS, BASE_DELAY_MS * 2 ** Math.max(0, attempt - 1));
+export function backoffDelayMs(
+  attempt: number,
+  error?: unknown,
+  random = Math.random,
+) {
+  const ceiling = Math.min(
+    MAX_DELAY_MS,
+    BASE_DELAY_MS * 2 ** Math.max(0, attempt - 1),
+  );
   const jittered = ceiling / 2 + random() * (ceiling / 2);
   const retryAfter = error instanceof ApiError ? error.retryAfterMs ?? 0 : 0;
   return Math.max(jittered, retryAfter);

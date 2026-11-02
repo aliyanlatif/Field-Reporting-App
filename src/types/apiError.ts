@@ -16,7 +16,14 @@ export class ApiError extends Error {
   readonly retryAfterMs?: number;
   readonly missingImageIds?: string[];
 
-  constructor({ kind, message, status, code, retryAfterMs, missingImageIds }: ApiErrorInit) {
+  constructor({
+    kind,
+    message,
+    status,
+    code,
+    retryAfterMs,
+    missingImageIds,
+  }: ApiErrorInit) {
     super(message);
     this.name = 'ApiError';
     this.kind = kind;

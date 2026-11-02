@@ -15,7 +15,7 @@ export interface ImageRow {
   id: string;
   report_id: string;
   position: number;
-  local_path: string;
+  local_uri: string;
   size_bytes: number;
   status: ImageStatus;
   [column: string]: string | number | null;
@@ -25,12 +25,15 @@ export const toLocalImage = (row: ImageRow): LocalImage => ({
   id: row.id,
   reportId: row.report_id,
   position: row.position,
-  localPath: row.local_path,
+  localUri: row.local_uri,
   sizeBytes: row.size_bytes,
   status: row.status,
 });
 
-export const toLocalReport = (row: ReportRow, images: LocalImage[]): LocalReport => ({
+export const toLocalReport = (
+  row: ReportRow,
+  images: LocalImage[],
+): LocalReport => ({
   id: row.id,
   description: row.description,
   status: row.status,

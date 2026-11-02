@@ -1,5 +1,11 @@
 import { REQUEST_TIMEOUT_MS, uploadTimeoutMs } from '../../config';
-import { ApiError, CreateReportRequest, ImageUpload, RemoteReport, ReportsApi } from '../../types';
+import {
+  ApiError,
+  CreateReportRequest,
+  ImageUpload,
+  RemoteReport,
+  ReportsApi,
+} from '../../types';
 
 export interface ApiClientOptions {
   baseUrl: string;
@@ -50,7 +56,10 @@ export function createApiClient({
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetchImpl(`${baseUrl}${path}`, { ...init, signal: controller.signal });
+      const response = await fetchImpl(`${baseUrl}${path}`, {
+        ...init,
+        signal: controller.signal,
+      });
       if (!response.ok) {
         throw await toHttpError(response);
       }
@@ -61,7 +70,10 @@ export function createApiClient({
         throw error;
       }
       throw controller.signal.aborted
-        ? new ApiError({ kind: 'timeout', message: `No response within ${timeoutMs} ms` })
+        ? new ApiError({
+            kind: 'timeout',
+            message: `No response within ${timeoutMs} ms`,
+          })
         : new ApiError({ kind: 'network', message: 'Network request failed' });
     } finally {
       clearTimeout(timer);
@@ -90,7 +102,9 @@ export function createApiClient({
     completeReport: reportId => post(`/reports/${reportId}/complete`),
 
     async listReports() {
-      const { reports } = await request<{ reports: RemoteReport[] }>('/reports');
+      const { reports } = await request<{ reports: RemoteReport[] }>(
+        '/reports',
+      );
       return reports;
     },
 
