@@ -1,4 +1,4 @@
-import { ApiError } from '../../types';
+import { ApiError, LocalFileError } from '../../types';
 
 const BASE_DELAY_MS = 2_000;
 const MAX_DELAY_MS = 5 * 60_000;
@@ -7,6 +7,9 @@ const RETRYABLE_STATUSES = new Set([408, 429]);
 const RECOVERABLE_CODES = new Set(['images_missing', 'report_not_found']);
 
 export function isRetryable(error: unknown) {
+  if (error instanceof LocalFileError) {
+    return false;
+  }
   if (!(error instanceof ApiError)) {
     return true;
   }
@@ -37,6 +40,9 @@ export function backoffDelayMs(
 }
 
 export function describeFailure(error: unknown) {
+  if (error instanceof LocalFileError) {
+    return error.message;
+  }
   if (!(error instanceof ApiError)) {
     return 'Unexpected error';
   }

@@ -133,6 +133,15 @@ describe('deriveBanner', () => {
     expect(deriveBanner(true, [local({ status: 'uploaded' })])).toBeNull();
   });
 
+  test('online with only failed reports asks the user to open one', () => {
+    expect(deriveBanner(true, [local({ status: 'failed_permanent' })])).toEqual(
+      {
+        tone: 'warning',
+        message: '1 report could not be sent. Open it to retry',
+      },
+    );
+  });
+
   test('offline with nothing pending only says so', () => {
     expect(deriveBanner(false, [])?.message).toBe("You're offline");
   });

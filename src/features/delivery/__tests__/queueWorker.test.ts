@@ -1,5 +1,5 @@
 import { resetAllDatabases } from 'react-native-nitro-sqlite/mock';
-import { ReportRepository } from '../../../types';
+import { LocalFileError, ReportRepository } from '../../../types';
 import { createQueueWorker, QueueWorker } from '../queueWorker';
 import {
   createTestRepository,
@@ -142,6 +142,20 @@ test('a refused upload is marked failed with its reason and never retried on its
   clock += 3_600_000;
   await worker.processQueue({ ignoreBackoff: true });
   expect(api.calls).toHaveLength(callsAfterFailure);
+});
+
+test('a photo missing from the device fails the report instead of retrying forever', async () => {
+  await repository.create(newReport('a'));
+  api.script('uploadImage', new LocalFileError('file:///files/a-0.jpg'));
+
+  await worker.processQueue();
+
+  const report = await repository.get('a');
+  expect(report).toMatchObject({
+    status: 'failed_permanent',
+    failureReason: 'Photo file is missing on this device',
+  });
+  expect(report?.images[0].status).toBe('failed');
 });
 
 test('a manual retry of a failed report delivers it once the server accepts', async () => {

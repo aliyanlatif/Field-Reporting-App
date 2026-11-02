@@ -3,6 +3,7 @@ import {
   ApiError,
   CreateReportRequest,
   ImageUpload,
+  LocalFileError,
   RemoteReport,
   ReportsApi,
 } from '../../types';
@@ -91,7 +92,9 @@ export function createApiClient({
     createReport: (report: CreateReportRequest) => post('/reports', report),
 
     async uploadImage(reportId: string, image: ImageUpload) {
-      const body = await readImage(image.uri);
+      const body = await readImage(image.uri).catch(() => {
+        throw new LocalFileError(image.uri);
+      });
       await request<void>(
         `/reports/${reportId}/images/${image.id}`,
         { method: 'PUT', headers: { 'content-type': 'image/jpeg' }, body },

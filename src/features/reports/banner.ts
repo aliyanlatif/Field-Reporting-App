@@ -29,7 +29,15 @@ export function deriveBanner(
         };
   }
   if (pending.length === 0) {
-    return null;
+    const failed = local.filter(
+      report => report.status === 'failed_permanent',
+    ).length;
+    return failed === 0
+      ? null
+      : {
+          tone: 'warning',
+          message: `${plural(failed)} could not be sent. Open it to retry`,
+        };
   }
   if (!uploading && retrying) {
     return {

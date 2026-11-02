@@ -1,4 +1,4 @@
-import { ApiError } from '../../../types';
+import { ApiError, LocalFileError } from '../../../types';
 import { backoffDelayMs, isRetryable } from '../retryPolicy';
 
 const http = (status: number, code?: string, retryAfterMs?: number) =>
@@ -31,6 +31,10 @@ describe('isRetryable', () => {
     ['404 unknown route', http(404)],
     ['409 id conflict', http(409, 'id_conflict')],
     ['413 image too large', http(413, 'image_too_large')],
+    [
+      'a photo file missing from the device',
+      new LocalFileError('file:///gone.jpg'),
+    ],
   ])('does not retry %s', (_name, error) => {
     expect(isRetryable(error)).toBe(false);
   });

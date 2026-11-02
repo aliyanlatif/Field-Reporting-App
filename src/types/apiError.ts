@@ -33,3 +33,10 @@ export class ApiError extends Error {
     this.missingImageIds = missingImageIds;
   }
 }
+
+export class LocalFileError extends Error {
+  constructor(readonly uri: string) {
+    super('Photo file is missing on this device');
+    this.name = 'LocalFileError';
+  }
+}

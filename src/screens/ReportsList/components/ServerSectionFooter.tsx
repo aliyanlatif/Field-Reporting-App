@@ -1,4 +1,7 @@
+import { Pressable, View } from 'react-native';
 import { AppText, StateMessage } from '../../../components';
+import { colors } from '../../../theme';
+import { serverFooterStyles as styles } from './serverFooterStyles';
 
 interface ServerSectionFooterProps {
   loadingFirstTime: boolean;
@@ -31,13 +34,28 @@ export function ServerSectionFooter({
   }
   if (loaded && error) {
     return (
-      <StateMessage
-        compact
-        title="Could not refresh"
-        message={`${error}. Showing the last list from the server.`}
-        actionLabel="Try again"
-        onAction={onRetry}
-      />
+      <View style={styles.staleRow}>
+        <AppText
+          variant="caption"
+          color={colors.textSecondary}
+          style={styles.staleText}
+        >
+          {error}. Showing the last list from the server.
+        </AppText>
+        <Pressable
+          accessibilityRole="button"
+          onPress={onRetry}
+          style={styles.retry}
+        >
+          <AppText
+            variant="caption"
+            color={colors.primary}
+            style={styles.retryLabel}
+          >
+            Try again
+          </AppText>
+        </Pressable>
+      </View>
     );
   }
   return loaded && isEmpty ? (

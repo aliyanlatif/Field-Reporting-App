@@ -8,7 +8,7 @@ export type {
   RetrySchedule,
 } from './report';
 export type { ReportRepository } from './reportRepository';
-export { ApiError } from './apiError';
+export { ApiError, LocalFileError } from './apiError';
 export type { ApiErrorKind } from './apiError';
 export type {
   CreateReportRequest,

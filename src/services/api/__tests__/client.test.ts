@@ -1,4 +1,4 @@
-import { ApiError } from '../../../types';
+import { ApiError, LocalFileError } from '../../../types';
 import { createApiClient } from '../client';
 
 const jsonResponse = (
@@ -168,4 +168,18 @@ test('allows uploads more time in proportion to their size', async () => {
   await jest.advanceTimersByTimeAsync(30_000);
   expect(await result).toMatchObject({ kind: 'timeout' });
   jest.useRealTimers();
+});
+
+test('an unreadable local photo is reported as a local file problem, not a network one', async () => {
+  const fetchImpl = jest.fn();
+  const api = setup(fetchImpl, {
+    readImage: async () => {
+      throw new Error('ENOENT');
+    },
+  });
+
+  await expect(
+    api.uploadImage('r1', { id: 'i1', uri: 'file:///gone.jpg', sizeBytes: 1 }),
+  ).rejects.toBeInstanceOf(LocalFileError);
+  expect(fetchImpl).not.toHaveBeenCalled();
 });

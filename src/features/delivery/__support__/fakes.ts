@@ -39,7 +39,7 @@ export const networkError = () =>
   new ApiError({ kind: 'network', message: 'down' });
 
 type Method = 'createReport' | 'uploadImage' | 'completeReport';
-type Outcome = ApiError | 'lose-response';
+type Outcome = Error | 'lose-response';
 
 /** In-memory server with the real idempotency rules, plus scripted failures per call. */
 export class FakeApi implements ReportsApi {
@@ -79,7 +79,7 @@ export class FakeApi implements ReportsApi {
     delete this.gates[method];
     await gate;
     const outcome = this.scripted[method].shift();
-    if (outcome instanceof ApiError) {
+    if (outcome instanceof Error) {
       throw outcome;
     }
     apply();
