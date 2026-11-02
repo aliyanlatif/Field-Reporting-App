@@ -1,6 +1,8 @@
 import express from 'express';
 import type { ErrorRequestHandler } from 'express';
+import { chaosMiddleware } from './chaos/middleware.js';
 import { HttpError } from './httpError.js';
+import { chaosRouter } from './routes/chaos.js';
 import { reportsRouter } from './routes/reports.js';
 
 const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
@@ -27,7 +29,8 @@ export function createApp() {
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' });
   });
-  app.use('/reports', reportsRouter);
+  app.use('/chaos', chaosRouter);
+  app.use('/reports', chaosMiddleware, reportsRouter);
   app.use(errorHandler);
 
   return app;
