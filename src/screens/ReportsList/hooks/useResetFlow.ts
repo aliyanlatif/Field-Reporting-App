@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react';
-import { ResetScope } from '../../../features/delivery';
+import { describeFailure, ResetScope } from '../../../features/delivery';
 import { resetDeviceData } from '../../../services/delivery';
 import { useReportsStore } from '../../../stores/reportsStore';
 import { showToast } from '../../../stores/toastStore';
 
 const DONE_MESSAGE: Record<ResetScope, string> = {
   unsent: 'Unsent reports cleared. The server was not touched.',
-  everything: 'Cleared this phone. The server was not touched.',
+  everything: 'Cleared this phone and the server.',
 };
 
 export function useResetFlow(onDone: () => void) {
@@ -27,8 +27,13 @@ export function useResetFlow(onDone: () => void) {
       await Promise.all([refreshLocal(), refreshRemote()]);
       showToast(DONE_MESSAGE[scope], 'ok');
       onDone();
-    } catch {
-      showToast('Could not clear this phone. Try again.', 'bad');
+    } catch (error) {
+      showToast(
+        scope === 'everything'
+          ? `${describeFailure(error)}. Nothing was deleted.`
+          : 'Could not clear this phone. Try again.',
+        'bad',
+      );
     } finally {
       setBusy(false);
     }

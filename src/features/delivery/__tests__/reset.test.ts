@@ -2,7 +2,12 @@ import { resetAllDatabases } from 'react-native-nitro-sqlite/mock';
 import { ReportRepository } from '../../../types';
 import { createQueueWorker, QueueWorker } from '../queueWorker';
 import { resetDevice, ResetScope } from '../reset';
-import { createTestRepository, FakeApi, newReport } from '../__support__/fakes';
+import {
+  createTestRepository,
+  FakeApi,
+  networkError,
+  newReport,
+} from '../__support__/fakes';
 
 const nextTick = () => new Promise<void>(resolve => setImmediate(resolve));
 
@@ -16,6 +21,7 @@ const reset = (scope: ResetScope) =>
   resetDevice(
     {
       worker,
+      api,
       repository,
       deleteFiles: async uris => {
         deletedFiles.push(...uris);
@@ -62,26 +68,42 @@ test('clearing unsent reports removes only what is still waiting, and its photos
   expect(removedImages).toBe(0);
 });
 
-test('clearing everything empties the queue and every stored photo', async () => {
+test('clearing everything wipes the server, the local queue and every stored photo', async () => {
   await repository.create(newReport('delivered'));
   await worker.processQueue();
   await repository.create(newReport('waiting'));
+  expect(api.completed).toHaveLength(1);
 
   await reset('everything');
 
+  expect(api.reports.size).toBe(0);
   expect(await repository.list()).toEqual([]);
   expect(removedImages).toBe(1);
 });
 
-test('the server is never touched', async () => {
+test('clearing only unsent reports never touches the server', async () => {
   await repository.create(newReport('delivered'));
   await worker.processQueue();
   await repository.create(newReport('waiting'));
   api.calls.length = 0;
 
-  await reset('everything');
+  await reset('unsent');
 
   expect(api.calls).toEqual([]);
+  expect(api.completed).toHaveLength(1);
+});
+
+test('if the server cannot be reached, clearing everything deletes nothing local', async () => {
+  await repository.create(newReport('waiting'));
+  api.deleteAllReports = async () => {
+    throw networkError();
+  };
+
+  await expect(reset('everything')).rejects.toMatchObject({ kind: 'network' });
+
+  expect(await repository.list()).toHaveLength(1);
+  expect(removedImages).toBe(0);
+  await worker.processQueue({ ignoreBackoff: true });
   expect(api.completed).toHaveLength(1);
 });
 

@@ -25,10 +25,10 @@ npm start
 
 **2. Point the app at it.** Edit `API_BASE_URL` in [src/config/index.ts](src/config/index.ts):
 
-| Where the app runs | Value |
-|---|---|
-| Android emulator | `http://10.0.2.2:4000` (the default) |
-| Physical phone | `http://<your laptop's LAN IP>:4000`, phone and laptop on the same network |
+| Where the app runs | Value                                                                      |
+| ------------------ | -------------------------------------------------------------------------- |
+| Android emulator   | `http://10.0.2.2:4000` (the default)                                       |
+| Physical phone     | `http://<your laptop's LAN IP>:4000`, phone and laptop on the same network |
 
 **3. Start Metro and run the app:**
 
@@ -78,13 +78,13 @@ When delivery runs: at launch, when the app returns to the foreground, when the 
 
 ### Which failures are retried
 
-| Failure | What the app does |
-|---|---|
-| No network, dropped connection, timeout | Retry with exponential backoff and jitter (2 s doubling to a 1 minute cap) |
-| 5xx, 429, 408 | Same, honouring a longer `Retry-After` |
-| 409 "images missing" or 404 "report not found" on complete | The server lost state, so retry (the next attempt re-creates the report and resends missing images) |
-| Any other 4xx (400, 403, 413, id conflict) | Stop. Mark the report **Failed** with the reason and show a **Retry sending** button. Not retried automatically. |
-| A photo file missing on the device | Same as above: failed, not retried forever |
+| Failure                                                    | What the app does                                                                                                |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| No network, dropped connection, timeout                    | Retry with exponential backoff and jitter (2 s doubling to a 1 minute cap)                                       |
+| 5xx, 429, 408                                              | Same, honouring a longer `Retry-After`                                                                           |
+| 409 "images missing" or 404 "report not found" on complete | The server lost state, so retry (the next attempt re-creates the report and resends missing images)              |
+| Any other 4xx (400, 403, 413, id conflict)                 | Stop. Mark the report **Failed** with the reason and show a **Retry sending** button. Not retried automatically. |
+| A photo file missing on the device                         | Same as above: failed, not retried forever                                                                       |
 
 Transient failures are retried without limit, because delivery has to be unattended. Every request has a timeout, so a server that hangs cannot block the queue.
 
@@ -98,12 +98,12 @@ Transient failures are retried without limit, because delivery has to be unatten
 
 ## Start over
 
-Start over clears **this phone only**. The server is never touched. The sheet offers two scopes, and a one-second press-and-hold confirms either so it cannot happen by accident:
+Start over offers two scopes, and a one-second press-and-hold confirms either so it cannot happen by accident:
 
 - **Clear unsent reports** deletes the reports still waiting on the phone, and their photos.
-- **Clear everything on this device** also clears the cached server list and every stored photo. The list is fetched from the server again straight after.
+- **Clear everything** deletes every report from the server **and** wipes the local queue and every stored photo.
 
-The worker is paused while it runs and the reset waits for any delivery in progress, so nothing is sent mid-wipe.
+The server is wiped **first**. If it cannot be reached, nothing local is touched and the user is told, so the device and server never end up half reset. The worker is paused while it runs and the reset waits for any delivery in progress, so a report mid-upload cannot reappear on the server after the wipe.
 
 ## Fixing a refused photo
 

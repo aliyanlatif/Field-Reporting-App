@@ -58,11 +58,12 @@ export async function retryReport(reportId: string) {
   await triggerDelivery();
 }
 
-/** Clears this phone only. The server keeps everything it already has. */
+/** `unsent` clears this phone only; `everything` also deletes every report on the server. */
 export async function resetDeviceData(scope: ResetScope) {
   await resetDevice(
     {
       worker: await getWorker(),
+      api,
       repository: await getReportRepository(),
       deleteFiles,
       removeLocalImages: removeAllImages,

@@ -1,23 +1,28 @@
-import { ReportRepository } from '../../types';
+import { ReportRepository, ReportsApi } from '../../types';
 import { QueueWorker } from './queueWorker';
 
-/** `unsent` clears reports still waiting on this phone. `everything` also clears what was already sent. */
+/** `unsent` clears reports still waiting on this phone. `everything` also deletes every report on the server. */
 export type ResetScope = 'unsent' | 'everything';
 
 interface ResetDeps {
   worker: QueueWorker;
+  api: Pick<ReportsApi, 'deleteAllReports'>;
   repository: Pick<ReportRepository, 'list' | 'delete' | 'clear'>;
   deleteFiles: (uris: string[]) => Promise<void>;
   removeLocalImages: () => Promise<void>;
 }
 
-/** Clears this device only. The server is never touched. Runs while no delivery is active, so nothing is sent mid-wipe. */
+/**
+ * `everything` wipes the server first: if it cannot be reached nothing local is touched, so the two never end up
+ * half reset. Runs while no delivery is active, so nothing is sent mid-wipe.
+ */
 export const resetDevice = (
-  { worker, repository, deleteFiles, removeLocalImages }: ResetDeps,
+  { worker, api, repository, deleteFiles, removeLocalImages }: ResetDeps,
   scope: ResetScope,
 ) =>
   worker.runExclusive(async () => {
     if (scope === 'everything') {
+      await api.deleteAllReports();
       await repository.clear();
       await removeLocalImages();
       return;
