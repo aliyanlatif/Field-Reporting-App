@@ -9,7 +9,5 @@ export type {
   ReportSections,
 } from './reportItems';
 export type { ReportBadge, ReportStage, StatusTone } from './reportStatus';
-export { summarizeQueue } from './summary';
-export type { QueueSummary } from './summary';
 export { buildTimeline } from './timeline';
 export type { StepState, TimelineStep } from './timeline';

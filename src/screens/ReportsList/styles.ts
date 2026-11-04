@@ -18,7 +18,6 @@ export const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: designPx(120),
   },
-  header: { marginTop: spacing.xs, marginBottom: designPx(22) },
   separator: { height: designPx(10) },
   sectionGap: { height: designPx(10) },
 });

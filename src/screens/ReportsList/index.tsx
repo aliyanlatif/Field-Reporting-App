@@ -8,7 +8,6 @@ import {
   ReportCard,
   Screen,
   SectionHeader,
-  StatusCard,
 } from '../../components';
 import { ReportListItem } from '../../features/reports';
 import { RootStackParamList } from '../../navigation/types';
@@ -75,11 +74,6 @@ export function ReportsListScreen({ navigation }: Props) {
             colors={[colors.primary]}
             progressBackgroundColor={colors.surface}
           />
-        }
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <StatusCard {...list.summary} />
-          </View>
         }
         renderSectionHeader={({ section }) => (
           <SectionHeader title={section.title} count={section.data.length} />

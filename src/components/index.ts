@@ -15,7 +15,6 @@ export { Skeleton } from './Skeleton';
 export { StateMessage } from './StateMessage';
 export { StatusBadge } from './StatusBadge';
 export { StatusBanner } from './StatusBanner';
-export { StatusCard } from './StatusCard';
 export { Timeline } from './Timeline';
 export { ToastHost } from './Toast';
 export { AddPhotoSheet } from './AddPhotoSheet';

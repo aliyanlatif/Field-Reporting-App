@@ -2,7 +2,6 @@ import { LocalReport, RemoteReport } from '../../../types';
 import { deriveBanner } from '../banner';
 import { describePhoto } from '../photoStatus';
 import { buildTimeline } from '../timeline';
-import { summarizeQueue } from '../summary';
 import { buildReportSections, ReportPhoto } from '../reportItems';
 import { describeLocalReport } from '../reportStatus';
 
@@ -140,76 +139,6 @@ describe('buildReportSections', () => {
 
     expect(sections.onDevice[0].failed).toBe(true);
     expect(sections.onDevice[0].refusedImageId).toBe('i1');
-  });
-});
-
-describe('summarizeQueue', () => {
-  const summary = (
-    reports: LocalReport[],
-    overrides: Partial<Parameters<typeof summarizeQueue>[0]> = {},
-  ) =>
-    summarizeQueue({
-      online: true,
-      local: reports,
-      serverCount: 3,
-      checkingServer: false,
-      ...overrides,
-    });
-
-  test('nothing unsent means everything is safe', () => {
-    expect(summary([])).toMatchObject({
-      tone: 'ok',
-      title: 'All 3 reports safe on the server',
-    });
-  });
-
-  test('says so while the server list is still loading', () => {
-    expect(summary([], { serverCount: 0, checkingServer: true })).toMatchObject(
-      {
-        title: 'Nothing waiting to send',
-        subtitle: 'Checking the server…',
-      },
-    );
-  });
-
-  test('a report that needs the user outranks everything else', () => {
-    const refused = local({ status: 'failed_permanent' });
-    refused.images[0].status = 'failed';
-
-    expect(
-      summary([refused, local({ id: 'r2' })], { online: false }),
-    ).toMatchObject({
-      tone: 'bad',
-      title: '1 report needs you',
-    });
-  });
-
-  test('offline reports wait for the network', () => {
-    expect(summary([local()], { online: false }).tone).toBe('wait');
-  });
-
-  test('counts photos while sending', () => {
-    const sending = local({ status: 'uploading' });
-    sending.images[0].status = 'uploaded';
-
-    expect(summary([sending])).toEqual({
-      tone: 'send',
-      title: 'Sending 1 report',
-      subtitle: '1 of 2 photos sent',
-    });
-  });
-
-  test('online but unable to reach the server says so', () => {
-    expect(summary([local({ attempts: 1 })]).subtitle).toContain(
-      "Can't reach the server",
-    );
-  });
-
-  test('a fresh report is saved and about to send', () => {
-    expect(summary([local()])).toMatchObject({
-      tone: 'amber',
-      title: '1 saved on phone',
-    });
   });
 });
 
