@@ -6,6 +6,8 @@ export { HoldButton } from './HoldButton';
 export { Icon } from './Icon';
 export type { IconName } from './Icon';
 export { IconButton } from './IconButton';
+export { PhotoViewer } from './PhotoViewer';
+export type { ViewerPhoto } from './PhotoViewer';
 export { PressableScale } from './PressableScale';
 export { ProgressRing } from './ProgressRing';
 export { ReportCard } from './ReportCard';

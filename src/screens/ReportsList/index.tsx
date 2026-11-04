@@ -80,7 +80,7 @@ export function ReportsListScreen({ navigation }: Props) {
           <StateMessage
             icon="camera"
             title="No reports yet"
-            message="File your first one. It is saved on this phone straight away, then sent when there is signal."
+            message="Reports you file will appear here."
           />
         </ScrollView>
       ) : (

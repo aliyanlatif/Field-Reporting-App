@@ -20,15 +20,6 @@ import { styles } from './styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ReportDetail'>;
 
-const noteFor = (stage: string, needsPhoto: boolean) => {
-  if (stage === 'delivered') {
-    return 'This is what the server holds.';
-  }
-  return needsPhoto
-    ? 'The rest of your reports keep sending while you fix this one.'
-    : 'Sending runs on its own. You can close the app.';
-};
-
 export function ReportDetailScreen({ navigation, route }: Props) {
   const { item, busy, retry, replacePhoto, removePhoto } = useReportDetail(
     route.params.reportId,
@@ -119,13 +110,6 @@ export function ReportDetailScreen({ navigation, route }: Props) {
               )
             )}
           </View>
-          <AppText
-            variant="caption"
-            color={colors.textTertiary}
-            style={styles.note}
-          >
-            {noteFor(item.stage, needsPhoto)}
-          </AppText>
         </View>
       </ScrollView>
 
