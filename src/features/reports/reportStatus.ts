@@ -17,7 +17,7 @@ export interface ReportBadge {
   detail?: string;
 }
 
-export const UPLOADED_BADGE: ReportBadge = { tone: 'ok', label: 'On server' };
+export const UPLOADED_BADGE: ReportBadge = { tone: 'ok', label: 'Uploaded' };
 
 export const stageOf = (report: LocalReport): ReportStage => {
   switch (report.status) {

@@ -290,3 +290,55 @@ test('reports how much of each photo was sent', async () => {
     ['p-i0', 1],
   ]);
 });
+
+describe('while the phone is offline', () => {
+  const offlineWorker = (online: { value: boolean }) =>
+    createQueueWorker({
+      repository,
+      api,
+      deleteFiles: async () => undefined,
+      isOnline: () => online.value,
+      now: () => clock,
+      random: () => 1,
+    });
+
+  test('nothing is attempted and nothing changes until the connection returns', async () => {
+    const online = { value: false };
+    const offline = offlineWorker(online);
+    await repository.create(newReport('a', 1, 1));
+
+    await offline.processQueue();
+    clock += 3_600_000;
+    await offline.processQueue({ ignoreBackoff: true });
+
+    expect(api.calls).toEqual([]);
+    expect(await repository.get('a')).toMatchObject({
+      status: 'queued',
+      attempts: 0,
+    });
+
+    online.value = true;
+    await offline.processQueue({ ignoreBackoff: true });
+
+    expect(api.completed).toHaveLength(1);
+    expect((await repository.get('a'))?.status).toBe('uploaded');
+    offline.stop();
+  });
+
+  test('does not spin a retry timer while offline', async () => {
+    jest.useFakeTimers();
+    const online = { value: true };
+    const offline = offlineWorker(online);
+    await repository.create(newReport('a', 1, 1));
+    api.script('createReport', networkError());
+    await offline.processQueue();
+
+    online.value = false;
+    clock += 10_000;
+    await jest.advanceTimersByTimeAsync(120_000);
+    jest.useRealTimers();
+
+    expect(api.calls).toEqual(['create a']);
+    offline.stop();
+  });
+});

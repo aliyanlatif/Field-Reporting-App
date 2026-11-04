@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 import { MAX_IMAGES_PER_REPORT } from '../../../config';
 import { submitReport, validateDraft } from '../../../features/compose';
 import { useCameraPermission } from '../../../hooks/useCameraPermission';
+import { useConnectivity } from '../../../hooks/useConnectivity';
 import { getReportRepository } from '../../../db';
 import { triggerDelivery } from '../../../services/delivery';
 import {
@@ -41,6 +42,9 @@ export function useComposeDraft() {
   const [submitting, setSubmitting] = useState(false);
   const [cameraRequested, setCameraRequested] = useState(false);
 
+  const online = useConnectivity();
+  const onlineRef = useRef(online);
+  onlineRef.current = online;
   const imagesRef = useRef(images);
   imagesRef.current = images;
   const mounted = useRef(true);
@@ -181,7 +185,11 @@ export function useComposeDraft() {
       );
       submitted.current = true;
       navigation.goBack();
-      showToast('Saved on this phone. It will send on its own.', 'amber');
+      if (onlineRef.current) {
+        showToast('Uploading to server...', 'neutral');
+      } else {
+        showToast('No internet connection. Waiting for network...', 'amber');
+      }
     } catch {
       setSubmitError('Could not save the report on this device. Try again.');
       setSubmitting(false);

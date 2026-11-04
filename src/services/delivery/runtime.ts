@@ -13,11 +13,14 @@ import { api } from '../api';
 import { subscribeToForeground } from '../appLifecycle';
 import { deleteFiles, removeAllImages, removeOrphanedFiles } from '../images';
 import { createId } from '../../utils/id';
-import { subscribeToConnectivity } from '../network';
+import { readConnectivity, subscribeToConnectivity } from '../network';
 import { useUploadProgressStore } from '../../stores/uploadProgressStore';
 import { notifyQueueChanged } from './queueEvents';
 
 let worker: Promise<QueueWorker> | null = null;
+
+/** What the phone last said about its connection. Delivery waits while it is false. */
+let online = true;
 
 function getWorker() {
   worker ??= getReportRepository().then(repository =>
@@ -27,6 +30,7 @@ function getWorker() {
       deleteFiles,
       notify: notifyQueueChanged,
       onProgress: useUploadProgressStore.getState().report,
+      isOnline: () => online,
     }),
   );
   return worker;
@@ -43,9 +47,14 @@ async function sweepOrphanedFiles() {
 /** Starts unattended delivery and returns a function that stops it. */
 export async function startDelivery() {
   await sweepOrphanedFiles().catch(() => undefined);
+  online = await readConnectivity().catch(() => true);
   return startTriggers(await getWorker(), {
     onForeground: subscribeToForeground,
-    onConnectivity: subscribeToConnectivity,
+    onConnectivity: listener =>
+      subscribeToConnectivity(isOnline => {
+        online = isOnline;
+        listener(isOnline);
+      }),
   });
 }
 

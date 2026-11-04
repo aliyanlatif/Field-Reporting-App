@@ -11,6 +11,8 @@ export interface QueueWorkerDeps {
   deleteFiles: (uris: string[]) => Promise<void>;
   notify?: () => void;
   onProgress?: (imageId: string, fraction: number) => void;
+  /** While this says no, nothing is attempted and nothing changes on screen; the connectivity trigger resumes delivery. */
+  isOnline?: () => boolean;
   now?: () => number;
   random?: () => number;
 }
@@ -32,6 +34,7 @@ export function createQueueWorker({
   deleteFiles,
   notify = () => undefined,
   onProgress,
+  isOnline = () => true,
   now = Date.now,
   random = Math.random,
 }: QueueWorkerDeps): QueueWorker {
@@ -92,7 +95,7 @@ export function createQueueWorker({
   async function drain(ignoreBackoff: boolean) {
     const attempted = new Set<string>();
     for (;;) {
-      if (paused) {
+      if (paused || !isOnline()) {
         return;
       }
       const due = await repository.findDue(
@@ -128,6 +131,9 @@ export function createQueueWorker({
   }
 
   async function scheduleWake() {
+    if (!isOnline()) {
+      return;
+    }
     const nextAttemptAt = await repository.nextAttemptAt();
     if (nextAttemptAt !== null) {
       wakeIn(Math.max(0, nextAttemptAt - now()));

@@ -1,1 +1,1 @@
-export { subscribeToConnectivity } from './connectivity';
+export { readConnectivity, subscribeToConnectivity } from './connectivity';
