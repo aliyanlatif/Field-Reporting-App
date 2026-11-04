@@ -3,7 +3,7 @@ import { TextInput, TextInputProps } from 'react-native';
 import { colors } from '../../theme';
 import { styles } from './styles';
 
-/** A multi-line field that lights up with a soft blue ring while it has focus. */
+/** A fixed-height multi-line field that scrolls its own text and lights up with a soft blue ring while it has focus. */
 export function TextArea({ style, onFocus, onBlur, ...rest }: TextInputProps) {
   const [focused, setFocused] = useState(false);
 
@@ -11,6 +11,7 @@ export function TextArea({ style, onFocus, onBlur, ...rest }: TextInputProps) {
     <TextInput
       {...rest}
       multiline
+      scrollEnabled
       textAlignVertical="top"
       placeholderTextColor={colors.textSecondary}
       selectionColor={colors.primary}
