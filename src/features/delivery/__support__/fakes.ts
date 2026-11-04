@@ -100,7 +100,12 @@ export class FakeApi implements ReportsApi {
     });
   }
 
-  uploadImage(reportId: string, image: ImageUpload) {
+  uploadImage(
+    reportId: string,
+    image: ImageUpload,
+    onProgress?: (fraction: number) => void,
+  ) {
+    onProgress?.(0.5);
     return this.run('uploadImage', `put ${image.id}`, () => {
       this.reports.get(reportId)?.images.add(image.id);
     });

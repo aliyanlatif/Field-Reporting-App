@@ -1,28 +1,56 @@
-import { View } from 'react-native';
-import { BadgeTone, ReportBadge } from '../../features/reports';
-import { colors } from '../../theme';
+import { Animated, View } from 'react-native';
+import { ReportBadge } from '../../features/reports';
+import { useLoop } from '../../hooks/useLoop';
+import { colors, tones } from '../../theme';
 import { AppText } from '../AppText';
 import { styles } from './styles';
 
-const palette: Record<BadgeTone, { background: string; text: string }> = {
-  neutral: { background: colors.border, text: colors.textPrimary },
-  progress: { background: colors.primary, text: colors.textOnPrimary },
-  warning: { background: colors.warningSurface, text: colors.warning },
-  success: { background: colors.successSurface, text: colors.success },
-  danger: { background: colors.dangerSurface, text: colors.danger },
-};
+interface StatusBadgeProps {
+  badge: ReportBadge;
+  /** Hide the failure reason. Cards show it on their own line. */
+  compact?: boolean;
+}
 
-export function StatusBadge({ badge }: { badge: ReportBadge }) {
-  const { background, text } = palette[badge.tone];
+/** A status chip: a dot (pulsing while sending) and the label, in the tone's colors. */
+export function StatusBadge({ badge, compact }: StatusBadgeProps) {
+  const tone = tones[badge.tone];
+  const pulse = useLoop(badge.tone === 'send', { duration: 1200 });
 
   return (
     <View style={styles.container}>
-      <View style={[styles.pill, { backgroundColor: background }]}>
-        <AppText variant="caption" color={text} style={styles.label}>
+      <View style={[styles.chip, { backgroundColor: tone.background }]}>
+        <View style={styles.dotBox}>
+          <Animated.View
+            style={[
+              styles.halo,
+              {
+                backgroundColor: tone.dot,
+                opacity: pulse.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [badge.tone === 'send' ? 0.5 : 0, 0],
+                }),
+                transform: [
+                  {
+                    scale: pulse.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 2.6],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+          <View style={[styles.dot, { backgroundColor: tone.dot }]} />
+        </View>
+        <AppText
+          variant="captionStrong"
+          color={tone.foreground}
+          style={styles.label}
+        >
           {badge.label}
         </AppText>
       </View>
-      {badge.detail && (
+      {!compact && badge.detail && (
         <AppText variant="caption" color={colors.textSecondary}>
           {badge.detail}
         </AppText>

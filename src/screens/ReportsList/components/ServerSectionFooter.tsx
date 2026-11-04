@@ -1,5 +1,10 @@
-import { Pressable, View } from 'react-native';
-import { AppText, StateMessage } from '../../../components';
+import { View } from 'react-native';
+import {
+  AppText,
+  PressableScale,
+  Skeleton,
+  StateMessage,
+} from '../../../components';
 import { colors } from '../../../theme';
 import { serverFooterStyles as styles } from './serverFooterStyles';
 
@@ -11,6 +16,8 @@ interface ServerSectionFooterProps {
   onRetry: () => void;
 }
 
+const SKELETON_ROWS = [0, 1, 2];
+
 export function ServerSectionFooter({
   loadingFirstTime,
   loaded,
@@ -19,12 +26,30 @@ export function ServerSectionFooter({
   onRetry,
 }: ServerSectionFooterProps) {
   if (loadingFirstTime) {
-    return <StateMessage compact loading title="Loading reports" />;
+    return (
+      <View
+        accessibilityLabel="Loading reports"
+        accessibilityLiveRegion="polite"
+        style={styles.skeletons}
+      >
+        {SKELETON_ROWS.map(row => (
+          <View key={row} style={styles.skeletonCard}>
+            <Skeleton style={styles.skeletonThumb} />
+            <View style={styles.skeletonBody}>
+              <Skeleton style={styles.lineLong} />
+              <Skeleton style={styles.lineShort} />
+              <Skeleton style={styles.chip} />
+            </View>
+          </View>
+        ))}
+      </View>
+    );
   }
   if (!loaded && error) {
     return (
       <StateMessage
         compact
+        icon="offline"
         title="Could not load reports from the server"
         message={error}
         actionLabel="Try again"
@@ -42,23 +67,25 @@ export function ServerSectionFooter({
         >
           {error}. Showing the last list from the server.
         </AppText>
-        <Pressable
+        <PressableScale
           accessibilityRole="button"
+          accessibilityLabel="Try again"
           onPress={onRetry}
           style={styles.retry}
         >
-          <AppText
-            variant="caption"
-            color={colors.primary}
-            style={styles.retryLabel}
-          >
+          <AppText variant="captionStrong" color={colors.primaryStrong}>
             Try again
           </AppText>
-        </Pressable>
+        </PressableScale>
       </View>
     );
   }
   return loaded && isEmpty ? (
-    <AppText>Nothing on the server yet.</AppText>
+    <StateMessage
+      compact
+      icon="camera"
+      title="No reports yet"
+      message="File your first one. It is saved on this phone straight away, then sent when there is signal."
+    />
   ) : null;
 }

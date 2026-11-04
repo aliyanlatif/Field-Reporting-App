@@ -1,22 +1,34 @@
-import { ReportRepository, ReportsApi } from '../../types';
+import { ReportRepository } from '../../types';
 import { QueueWorker } from './queueWorker';
+
+/** `unsent` clears reports still waiting on this phone. `everything` also clears what was already sent. */
+export type ResetScope = 'unsent' | 'everything';
 
 interface ResetDeps {
   worker: QueueWorker;
-  api: Pick<ReportsApi, 'deleteAllReports'>;
-  repository: Pick<ReportRepository, 'clear'>;
+  repository: Pick<ReportRepository, 'list' | 'delete' | 'clear'>;
+  deleteFiles: (uris: string[]) => Promise<void>;
   removeLocalImages: () => Promise<void>;
 }
 
-/** Server first: if it cannot be reached nothing local is touched, and no delivery can undo the wipe. */
-export const resetEverything = ({
-  worker,
-  api,
-  repository,
-  removeLocalImages,
-}: ResetDeps) =>
+/** Clears this device only. The server is never touched. Runs while no delivery is active, so nothing is sent mid-wipe. */
+export const resetDevice = (
+  { worker, repository, deleteFiles, removeLocalImages }: ResetDeps,
+  scope: ResetScope,
+) =>
   worker.runExclusive(async () => {
-    await api.deleteAllReports();
-    await repository.clear();
-    await removeLocalImages();
+    if (scope === 'everything') {
+      await repository.clear();
+      await removeLocalImages();
+      return;
+    }
+    const unsent = (await repository.list()).filter(
+      report => report.status !== 'uploaded',
+    );
+    for (const report of unsent) {
+      await repository.delete(report.id);
+    }
+    await deleteFiles(
+      unsent.flatMap(report => report.images.map(image => image.localUri)),
+    );
   });

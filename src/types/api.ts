@@ -26,7 +26,12 @@ export interface RemoteReport {
 
 export interface ReportsApi {
   createReport(request: CreateReportRequest): Promise<void>;
-  uploadImage(reportId: string, image: ImageUpload): Promise<void>;
+  /** `onProgress` receives the fraction (0 to 1) of the image's bytes handed to the network. */
+  uploadImage(
+    reportId: string,
+    image: ImageUpload,
+    onProgress?: (fraction: number) => void,
+  ): Promise<void>;
   completeReport(reportId: string): Promise<void>;
   listReports(): Promise<RemoteReport[]>;
   getReport(reportId: string): Promise<RemoteReport>;

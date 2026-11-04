@@ -1,29 +1,38 @@
 import { StyleSheet } from 'react-native';
-import { colors, radius, spacing, typography } from '../../theme';
+import { colors, spacing } from '../../theme';
 import { designPx } from '../../utils/responsiveUtils';
 
 export const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  content: { gap: spacing.lg, paddingBottom: spacing.lg },
-  field: { gap: spacing.sm },
-  input: {
-    ...typography.body,
-    minHeight: designPx(120),
-    padding: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    color: colors.textPrimary,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: spacing.sm,
+    paddingLeft: spacing.lg - designPx(4),
+    paddingRight: designPx(10),
   },
-  inputError: { borderColor: colors.danger },
-  photosHeader: {
+  scroll: { flex: 1 },
+  content: {
+    paddingHorizontal: spacing.lg - designPx(4),
+    paddingBottom: spacing.md,
+  },
+  label: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'baseline',
+    marginTop: designPx(14),
+    marginBottom: spacing.sm,
+    marginHorizontal: 2,
   },
-  actions: { flexDirection: 'row', gap: spacing.sm },
-  action: { flex: 1 },
-  footer: { gap: spacing.sm, paddingTop: spacing.md },
-  hint: { textAlign: 'center' },
+  note: { marginTop: designPx(12), marginHorizontal: 2 },
+  footer: {
+    paddingHorizontal: spacing.lg - designPx(4),
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.background,
+  },
+  hint: {
+    textAlign: 'center',
+    marginBottom: designPx(12),
+    minHeight: designPx(18),
+  },
 });

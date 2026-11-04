@@ -1,14 +1,30 @@
 import { StyleSheet } from 'react-native';
-import { colors, radius, spacing } from '../../theme';
+import { spacing } from '../../theme';
+import { designPx } from '../../utils/responsiveUtils';
 
 export const styles = StyleSheet.create({
-  content: { gap: spacing.md, paddingBottom: spacing.lg },
-  description: { marginTop: spacing.xs },
-  photos: { gap: spacing.md },
-  photo: {
-    width: '100%',
-    aspectRatio: 4 / 3,
-    borderRadius: radius.md,
-    backgroundColor: colors.border,
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: spacing.sm,
+    paddingLeft: designPx(8),
+    paddingRight: spacing.md,
+  },
+  content: { paddingBottom: designPx(40) },
+  body: { paddingHorizontal: spacing.md, gap: designPx(10) },
+  hint: { marginTop: spacing.sm, marginHorizontal: designPx(20) + 2 },
+  description: {
+    marginTop: designPx(4),
+    marginHorizontal: 2,
+    letterSpacing: -0.19,
+  },
+  chip: { marginHorizontal: 2 },
+  timeline: { marginVertical: spacing.sm },
+  actions: { gap: designPx(10) },
+  note: {
+    textAlign: 'center',
+    marginTop: spacing.xs,
+    marginBottom: spacing.sm,
   },
 });

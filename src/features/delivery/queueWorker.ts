@@ -10,6 +10,7 @@ export interface QueueWorkerDeps {
   api: ReportsApi;
   deleteFiles: (uris: string[]) => Promise<void>;
   notify?: () => void;
+  onProgress?: (imageId: string, fraction: number) => void;
   now?: () => number;
   random?: () => number;
 }
@@ -30,6 +31,7 @@ export function createQueueWorker({
   api,
   deleteFiles,
   notify = () => undefined,
+  onProgress,
   now = Date.now,
   random = Math.random,
 }: QueueWorkerDeps): QueueWorker {
@@ -79,7 +81,7 @@ export function createQueueWorker({
 
   async function attempt(report: LocalReport) {
     try {
-      await deliverReport(report, { repository, api, notify });
+      await deliverReport(report, { repository, api, notify, onProgress });
     } catch (error) {
       await handleFailure(report, error);
       return;

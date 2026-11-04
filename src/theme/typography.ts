@@ -1,12 +1,76 @@
 import { TextStyle } from 'react-native';
-import { ResponsiveScaling } from '../utils/responsiveUtils';
+import { designPx } from '../utils/responsiveUtils';
 
-export type TextVariant = 'title' | 'heading' | 'body' | 'caption' | 'button';
+/**
+ * Manrope is bundled as static files, one per weight. Android picks the file by
+ * family name, so the weight is part of the name and `fontWeight` is not set.
+ */
+export const fontFamily = {
+  regular: 'Manrope-Regular',
+  medium: 'Manrope-Medium',
+  semiBold: 'Manrope-SemiBold',
+  bold: 'Manrope-Bold',
+  extraBold: 'Manrope-ExtraBold',
+} as const;
+
+export type TextVariant =
+  | 'display'
+  | 'title'
+  | 'heading'
+  | 'body'
+  | 'bodyStrong'
+  | 'caption'
+  | 'captionStrong'
+  | 'label'
+  | 'button';
 
 export const typography: Record<TextVariant, TextStyle> = {
-  title: { fontSize: ResponsiveScaling(1.7), fontWeight: '700' },
-  heading: { fontSize: ResponsiveScaling(1.35), fontWeight: '600' },
-  body: { fontSize: ResponsiveScaling(1.1), fontWeight: '400' },
-  caption: { fontSize: ResponsiveScaling(0.9), fontWeight: '400' },
-  button: { fontSize: ResponsiveScaling(1.15), fontWeight: '600' },
+  // Screen title ("Reports")
+  display: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: designPx(32),
+    letterSpacing: -0.96,
+  },
+  // Sheet titles
+  title: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: designPx(24),
+    letterSpacing: -0.48,
+  },
+  heading: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: designPx(18),
+    lineHeight: designPx(24),
+  },
+  body: {
+    fontFamily: fontFamily.medium,
+    fontSize: designPx(15),
+    lineHeight: designPx(22),
+  },
+  bodyStrong: {
+    fontFamily: fontFamily.bold,
+    fontSize: designPx(14.5),
+    lineHeight: designPx(20),
+  },
+  caption: {
+    fontFamily: fontFamily.medium,
+    fontSize: designPx(12.5),
+    lineHeight: designPx(17),
+  },
+  captionStrong: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: designPx(12),
+    lineHeight: designPx(16),
+  },
+  // Uppercase section titles ("WAITING TO SEND")
+  label: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: designPx(12.5),
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
+  },
+  button: {
+    fontFamily: fontFamily.extraBold,
+    fontSize: designPx(16),
+  },
 };
