@@ -1,5 +1,5 @@
-// 10.0.2.2 reaches the host machine from the Android emulator; use the laptop's LAN IP on a phone.
-export const API_BASE_URL = 'http://10.0.2.2:4000';
+// The dev server forwards this port to every adb-connected device, so one address works on emulators and phones.
+export const API_BASE_URL = 'http://localhost:4000';
 
 export const REQUEST_TIMEOUT_MS = 15_000;
 

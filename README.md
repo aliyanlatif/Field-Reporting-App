@@ -23,25 +23,20 @@ cd server
 npm start
 ```
 
-**2. Point the app at it.** Edit `API_BASE_URL` in [src/config/index.ts](src/config/index.ts):
+That is the only server-side step. The backend watches `adb` and makes `localhost:4000` on every connected Android device (emulator, USB or wireless) reach it, and re-opens that link if a device reconnects. The app is configured for `http://localhost:4000` ([src/config/index.ts](src/config/index.ts)), so there is no IP address to look up and nothing to edit, whether you use an emulator or a phone. Plug in or start the device before or after the server, either works.
 
-| Where the app runs | Value                                                                      |
-| ------------------ | -------------------------------------------------------------------------- |
-| Android emulator   | `http://10.0.2.2:4000` (the default)                                       |
-| Physical phone     | `http://<your laptop's LAN IP>:4000`, phone and laptop on the same network |
+If `adb` is not installed, or the device is not connected through adb, the server says so on start. Set `API_BASE_URL` to `http://<this machine's LAN IP>:4000` in that case (phone and laptop on the same network). `ADB_TUNNEL=off npm start` turns the forwarding off.
 
-**3. Start Metro and run the app:**
+**2. Start Metro and run the app:**
 
 ```sh
 npm start            # Metro
 npm run android      # in another terminal
 ```
 
-On a physical device over USB also run `adb reverse tcp:8081 tcp:8081`.
-
 Cleartext HTTP is allowed in **debug builds only** (Android blocks it in release builds by default), so run the app as a debug build against the local server.
 
-**Tests:** `npm test` runs 96 Jest tests with no UI and no device. `npm run lint` and `npx tsc --noEmit` should both be clean.
+**Tests:** `npm test` runs the Jest suite with no UI and no device. `npm run lint` and `npx tsc --noEmit` should both be clean.
 
 ## Failure injection
 
