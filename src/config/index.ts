@@ -11,6 +11,8 @@ export const uploadTimeoutMs = (sizeBytes: number) =>
 
 export const MAX_IMAGES_PER_REPORT = 5;
 
+export const MAX_DESCRIPTION_LENGTH = 500;
+
 export interface ImageBudget {
   maxBytes: number;
   targetBytes: number;

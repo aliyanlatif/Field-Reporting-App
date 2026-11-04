@@ -1,4 +1,4 @@
-import { MAX_IMAGES_PER_REPORT } from '../../config';
+import { MAX_DESCRIPTION_LENGTH, MAX_IMAGES_PER_REPORT } from '../../config';
 
 export interface DraftInput {
   description: string;
@@ -17,6 +17,8 @@ export function validateDraft({
   const errors: DraftErrors = {};
   if (!description.trim()) {
     errors.description = 'Describe what you found';
+  } else if (description.trim().length > MAX_DESCRIPTION_LENGTH) {
+    errors.description = `Keep the description under ${MAX_DESCRIPTION_LENGTH} characters`;
   }
   if (imageCount < 1) {
     errors.images = 'Add at least one photo';

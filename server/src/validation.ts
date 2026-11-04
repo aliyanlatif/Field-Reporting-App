@@ -28,6 +28,13 @@ export function parseCreateReport(body: unknown): CreateReportInput {
   if (typeof input.description !== 'string' || !input.description.trim()) {
     throw new HttpError(400, 'invalid_description', 'Description is required');
   }
+  if (input.description.trim().length > config.maxDescriptionLength) {
+    throw new HttpError(
+      400,
+      'invalid_description',
+      `Description is longer than ${config.maxDescriptionLength} characters`,
+    );
+  }
 
   const { imageIds } = input;
   if (
