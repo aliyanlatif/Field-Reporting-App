@@ -24,11 +24,7 @@ export function ComposeReportScreen() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const shake = useShake(draft.rejectedTaps);
 
-  const hint =
-    draft.submitError ??
-    draft.problem ??
-    'It will send by itself when there is a connection.';
-  const hintIsError = Boolean(draft.submitError ?? draft.problem);
+  const hint = draft.submitError ?? draft.problem;
 
   return (
     <Screen>
@@ -86,25 +82,19 @@ export function ComposeReportScreen() {
             {draft.pickerError}
           </AppText>
         )}
-        <AppText
-          variant="caption"
-          color={colors.textSecondary}
-          style={styles.note}
-        >
-          Big photos are shrunk on your phone to stay under 5 MB. They stay
-          sharp.
-        </AppText>
       </ScrollView>
 
       <Animated.View style={[styles.footer, shake]}>
-        <AppText
-          variant={hintIsError ? 'bodyStrong' : 'caption'}
-          color={hintIsError ? colors.danger : colors.textSecondary}
-          accessibilityLiveRegion="polite"
-          style={styles.hint}
-        >
-          {hint}
-        </AppText>
+        {hint && (
+          <AppText
+            variant="bodyStrong"
+            color={colors.danger}
+            accessibilityLiveRegion="polite"
+            style={styles.hint}
+          >
+            {hint}
+          </AppText>
+        )}
         <Button
           label="Save report"
           onPress={draft.submit}
