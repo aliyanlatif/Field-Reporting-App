@@ -35,6 +35,20 @@ export const store = {
   readImage: (reportId: string, imageId: string) =>
     readFile(imagePath(reportId, imageId)),
 
+  async deleteReport(id: string) {
+    const report = reports.get(id);
+    if (!report) {
+      return;
+    }
+    reports.delete(id);
+    await Promise.all(
+      report.imageIds.map(imageId => {
+        uploadedImages.delete(imageKey(id, imageId));
+        return rm(imagePath(id, imageId), { force: true });
+      }),
+    );
+  },
+
   async clear() {
     reports.clear();
     uploadedImages.clear();

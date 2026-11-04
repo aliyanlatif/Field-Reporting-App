@@ -188,6 +188,9 @@ export function createApiClient({
 
     getReport: reportId => request<RemoteReport>(`/reports/${reportId}`),
 
+    deleteReport: reportId =>
+      request<void>(`/reports/${reportId}`, { method: 'DELETE' }),
+
     deleteAllReports: () => request<void>('/reports', { method: 'DELETE' }),
   };
 }

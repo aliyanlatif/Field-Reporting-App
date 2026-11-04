@@ -135,6 +135,10 @@ export class FakeApi implements ReportsApi {
   getReport = async (): Promise<RemoteReport> => {
     throw httpError(404);
   };
+  deleteReport = async (reportId: string) => {
+    this.calls.push(`delete ${reportId}`);
+    this.reports.delete(reportId);
+  };
   deleteAllReports = async () => {
     this.reports.clear();
   };

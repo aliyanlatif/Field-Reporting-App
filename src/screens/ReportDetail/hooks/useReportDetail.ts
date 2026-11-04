@@ -1,12 +1,18 @@
 import { useNavigation } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
-import { findReportItem } from '../../../features/reports';
+import { Alert } from 'react-native';
+import { describeFailure } from '../../../features/delivery';
+import { findReportItem, ReportListItem } from '../../../features/reports';
 import {
   useCameraPermission,
   useConnectivity,
   useReportSections,
 } from '../../../hooks';
-import { retryReport, reviseReport } from '../../../services/delivery';
+import {
+  deleteReport,
+  retryReport,
+  reviseReport,
+} from '../../../services/delivery';
 import {
   chooseFromGallery,
   prepareImage,
@@ -17,12 +23,29 @@ import { showToast } from '../../../stores/toastStore';
 
 type PhotoSource = 'camera' | 'gallery';
 
+const SHORT_TITLE_LENGTH = 40;
+
+const shorten = (text: string) =>
+  text.length > SHORT_TITLE_LENGTH
+    ? `${text.slice(0, SHORT_TITLE_LENGTH).trimEnd()}…`
+    : text;
+
+const confirmationText = (item: ReportListItem) =>
+  item.stage === 'delivered'
+    ? `“${shorten(
+        item.description,
+      )}” and its photos will be deleted from the server and from this phone. This cannot be undone.`
+    : `“${shorten(
+        item.description,
+      )}” has not been sent yet. It and its photos will be removed from this phone. This cannot be undone.`;
+
 export function useReportDetail(reportId: string) {
   const navigation = useNavigation();
   const online = useConnectivity();
   const camera = useCameraPermission();
   const item = findReportItem(useReportSections(), reportId);
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   /** The revised report has a new id: wait until the list knows it, then follow it. */
   const followRevision = useCallback(
@@ -92,5 +115,39 @@ export function useReportDetail(reportId: string) {
     }
   }, [followRevision, item?.refusedImageId, reportId]);
 
-  return { item, busy, retry, replacePhoto, removePhoto };
+  const runDelete = useCallback(async () => {
+    setDeleting(true);
+    try {
+      await deleteReport(reportId);
+      navigation.goBack();
+      useReportsStore.getState().forget(reportId);
+      showToast('Report deleted.', 'ok');
+    } catch (error) {
+      showToast(
+        `${describeFailure(error)}. The report was not deleted.`,
+        'bad',
+      );
+      setDeleting(false);
+    }
+  }, [navigation, reportId]);
+
+  const confirmDelete = useCallback(() => {
+    if (!item) {
+      return;
+    }
+    Alert.alert('Delete this report?', confirmationText(item), [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: runDelete },
+    ]);
+  }, [item, runDelete]);
+
+  return {
+    item,
+    busy,
+    deleting,
+    retry,
+    replacePhoto,
+    removePhoto,
+    confirmDelete,
+  };
 }

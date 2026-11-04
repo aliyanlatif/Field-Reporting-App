@@ -1,6 +1,7 @@
 export { createQueueWorker } from './queueWorker';
 export type { QueueWorker } from './queueWorker';
 export { describeFailure } from './retryPolicy';
+export { removeReport } from './removeReport';
 export { resetDevice } from './reset';
 export type { ResetScope } from './reset';
 export { reviseFailedReport } from './revise';

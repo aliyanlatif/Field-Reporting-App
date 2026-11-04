@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import {
   AddPhotoSheet,
   AppText,
@@ -21,9 +21,15 @@ import { styles } from './styles';
 type Props = NativeStackScreenProps<RootStackParamList, 'ReportDetail'>;
 
 export function ReportDetailScreen({ navigation, route }: Props) {
-  const { item, busy, retry, replacePhoto, removePhoto } = useReportDetail(
-    route.params.reportId,
-  );
+  const {
+    item,
+    busy,
+    deleting,
+    retry,
+    replacePhoto,
+    removePhoto,
+    confirmDelete,
+  } = useReportDetail(route.params.reportId);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   if (!item) {
@@ -50,9 +56,25 @@ export function ReportDetailScreen({ navigation, route }: Props) {
           label="Back to reports"
           onPress={navigation.goBack}
         />
-        <AppText variant="heading" accessibilityRole="header">
+        <AppText
+          variant="heading"
+          accessibilityRole="header"
+          style={styles.title}
+        >
           Report
         </AppText>
+        {deleting ? (
+          <View style={styles.deleting}>
+            <ActivityIndicator color={colors.danger} />
+          </View>
+        ) : (
+          <IconButton
+            icon="trash"
+            label="Delete report"
+            color={colors.danger}
+            onPress={confirmDelete}
+          />
+        )}
       </View>
 
       <ScrollView

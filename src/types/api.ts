@@ -35,5 +35,7 @@ export interface ReportsApi {
   completeReport(reportId: string): Promise<void>;
   listReports(): Promise<RemoteReport[]>;
   getReport(reportId: string): Promise<RemoteReport>;
+  /** Idempotent: deleting a report the server no longer holds is not an error. */
+  deleteReport(reportId: string): Promise<void>;
   deleteAllReports(): Promise<void>;
 }

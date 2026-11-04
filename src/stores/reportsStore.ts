@@ -13,6 +13,8 @@ interface ReportsState {
   refreshLocal: () => Promise<void>;
   refreshRemote: () => Promise<void>;
   handleQueueChange: () => Promise<void>;
+  /** Drops a deleted report from view straight away, without waiting for the next fetch. */
+  forget: (reportId: string) => void;
   clear: () => void;
 }
 
@@ -80,6 +82,13 @@ export const useReportsStore = create<ReportsState>()((set, get) => ({
     ) {
       await get().refreshRemote();
     }
+  },
+
+  forget(reportId) {
+    set(state => ({
+      local: state.local.filter(report => report.id !== reportId),
+      remote: state.remote.filter(report => report.id !== reportId),
+    }));
   },
 
   clear() {

@@ -2,6 +2,7 @@ import { getReportRepository } from '../../db';
 import {
   createQueueWorker,
   QueueWorker,
+  removeReport,
   resetDevice,
   ResetScope,
   reviseFailedReport,
@@ -71,6 +72,20 @@ export async function resetDeviceData(scope: ResetScope) {
     scope,
   );
   useUploadProgressStore.getState().clear();
+  notifyQueueChanged();
+}
+
+/** Deletes one report from the server and this phone, or from this phone only if it never reached the server. */
+export async function deleteReport(reportId: string) {
+  await removeReport(
+    {
+      worker: await getWorker(),
+      api,
+      repository: await getReportRepository(),
+      deleteFiles,
+    },
+    reportId,
+  );
   notifyQueueChanged();
 }
 
