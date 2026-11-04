@@ -5,9 +5,8 @@ import { designPx } from '../../utils/responsiveUtils';
 export const styles = StyleSheet.create({
   layer: {
     ...StyleSheet.absoluteFill,
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
     paddingHorizontal: spacing.lg - designPx(4),
-    paddingBottom: designPx(96),
   },
   toast: {
     paddingVertical: designPx(13),

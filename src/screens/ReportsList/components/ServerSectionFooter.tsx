@@ -1,18 +1,11 @@
 import { View } from 'react-native';
-import {
-  AppText,
-  PressableScale,
-  Skeleton,
-  StateMessage,
-} from '../../../components';
-import { colors } from '../../../theme';
+import { Skeleton, StateMessage } from '../../../components';
 import { serverFooterStyles as styles } from './serverFooterStyles';
 
 interface ServerSectionFooterProps {
   loadingFirstTime: boolean;
   loaded: boolean;
   error: string | null;
-  isEmpty: boolean;
   onRetry: () => void;
 }
 
@@ -22,7 +15,6 @@ export function ServerSectionFooter({
   loadingFirstTime,
   loaded,
   error,
-  isEmpty,
   onRetry,
 }: ServerSectionFooterProps) {
   if (loadingFirstTime) {
@@ -57,35 +49,5 @@ export function ServerSectionFooter({
       />
     );
   }
-  if (loaded && error) {
-    return (
-      <View style={styles.staleRow}>
-        <AppText
-          variant="caption"
-          color={colors.textSecondary}
-          style={styles.staleText}
-        >
-          {error}. Showing the last list from the server.
-        </AppText>
-        <PressableScale
-          accessibilityRole="button"
-          accessibilityLabel="Try again"
-          onPress={onRetry}
-          style={styles.retry}
-        >
-          <AppText variant="captionStrong" color={colors.primaryStrong}>
-            Try again
-          </AppText>
-        </PressableScale>
-      </View>
-    );
-  }
-  return loaded && isEmpty ? (
-    <StateMessage
-      compact
-      icon="camera"
-      title="No reports yet"
-      message="File your first one. It is saved on this phone straight away, then sent when there is signal."
-    />
-  ) : null;
+  return null;
 }

@@ -10,11 +10,12 @@ import { AppText } from '../AppText';
 import { Icon } from '../Icon';
 import { styles } from './styles';
 
+const OFFLINE_MS = 4000;
 const BACK_ONLINE_MS = 3000;
 
 type Shown = { kind: 'offline' | 'back'; message: string };
 
-/** Slides in from the top when the connection drops, and says so again briefly when it returns. */
+/** Slides in from the top when the connection drops and again when it returns, and goes away by itself after a few seconds each time. */
 export function StatusBanner() {
   const online = useConnectivity();
   const { top } = useSafeAreaInsets();
@@ -30,6 +31,7 @@ export function StatusBanner() {
     if (banner) {
       wasOffline.current = true;
       setShown({ kind: 'offline', message: banner.message });
+      hideTimer = setTimeout(() => setShown(null), OFFLINE_MS);
     } else if (wasOffline.current) {
       wasOffline.current = false;
       setShown({ kind: 'back', message: 'Back online.' });

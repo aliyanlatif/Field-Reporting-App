@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { colors, duration, easeOutBack } from '../../theme';
 import { ToastMessage, useToastStore } from '../../stores/toastStore';
 import { runTiming } from '../../utils/motion';
+import { designPx } from '../../utils/responsiveUtils';
 import { AppText } from '../AppText';
 import { styles } from './styles';
 
@@ -22,6 +24,7 @@ export function ToastHost() {
   const incoming = useToastStore(state => state.toast);
   const hide = useToastStore(state => state.hide);
   const reduced = useReducedMotion();
+  const { top } = useSafeAreaInsets();
   const [shown, setShown] = useState<ToastMessage | null>(null);
   const progress = useRef(new Animated.Value(0)).current;
 
@@ -52,7 +55,10 @@ export function ToastHost() {
   }
 
   return (
-    <View pointerEvents="none" style={styles.layer}>
+    <View
+      pointerEvents="none"
+      style={[styles.layer, { paddingTop: top + designPx(12) }]}
+    >
       <Animated.View
         accessibilityLiveRegion="polite"
         style={[
@@ -64,7 +70,7 @@ export function ToastHost() {
               {
                 translateY: progress.interpolate({
                   inputRange: [0, 1],
-                  outputRange: [16, 0],
+                  outputRange: [-16, 0],
                 }),
               },
               {

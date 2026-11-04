@@ -7,6 +7,7 @@ const DOT = designPx(8);
 export const styles = StyleSheet.create({
   container: { gap: spacing.xs, alignItems: 'flex-start' },
   chip: {
+    maxWidth: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: designPx(7),
@@ -23,5 +24,6 @@ export const styles = StyleSheet.create({
     height: DOT,
     borderRadius: DOT / 2,
   },
-  label: { flexShrink: 1 },
+  // Never let the label shrink below its measured width: on Android a one-pixel rounding gap wraps it onto a hidden second line.
+  label: { flexShrink: 0 },
 });

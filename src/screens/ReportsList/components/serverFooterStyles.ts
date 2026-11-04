@@ -1,15 +1,8 @@
 import { StyleSheet } from 'react-native';
-import { colors, radius, spacing, touchTarget } from '../../../theme';
+import { colors, radius } from '../../../theme';
 import { designPx } from '../../../utils/responsiveUtils';
 
 export const serverFooterStyles = StyleSheet.create({
-  staleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  staleText: { flex: 1 },
-  retry: {
-    minHeight: touchTarget,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.sm,
-  },
   skeletons: { gap: designPx(10) },
   skeletonCard: {
     flexDirection: 'row',

@@ -1,12 +1,18 @@
 import { useNavigation } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
+import { Alert } from 'react-native';
+import { describeFailure } from '../../../features/delivery';
 import { findReportItem } from '../../../features/reports';
 import {
   useCameraPermission,
   useConnectivity,
   useReportSections,
 } from '../../../hooks';
-import { retryReport, reviseReport } from '../../../services/delivery';
+import {
+  deleteReport,
+  retryReport,
+  reviseReport,
+} from '../../../services/delivery';
 import {
   chooseFromGallery,
   prepareImage,
@@ -23,6 +29,7 @@ export function useReportDetail(reportId: string) {
   const camera = useCameraPermission();
   const item = findReportItem(useReportSections(), reportId);
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   /** The revised report has a new id: wait until the list knows it, then follow it. */
   const followRevision = useCallback(
@@ -92,5 +99,39 @@ export function useReportDetail(reportId: string) {
     }
   }, [followRevision, item?.refusedImageId, reportId]);
 
-  return { item, busy, retry, replacePhoto, removePhoto };
+  const runDelete = useCallback(async () => {
+    setDeleting(true);
+    try {
+      await deleteReport(reportId);
+      navigation.goBack();
+      useReportsStore.getState().forget(reportId);
+      showToast('Report deleted.', 'ok');
+    } catch (error) {
+      showToast(
+        `${describeFailure(error)}. The report was not deleted.`,
+        'bad',
+      );
+      setDeleting(false);
+    }
+  }, [navigation, reportId]);
+
+  const confirmDelete = useCallback(() => {
+    if (!item) {
+      return;
+    }
+    Alert.alert('Are you sure you want to delete this report?', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: runDelete },
+    ]);
+  }, [item, runDelete]);
+
+  return {
+    item,
+    busy,
+    deleting,
+    retry,
+    replacePhoto,
+    removePhoto,
+    confirmDelete,
+  };
 }

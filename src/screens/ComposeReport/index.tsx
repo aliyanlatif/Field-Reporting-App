@@ -9,7 +9,7 @@ import {
   Screen,
   TextArea,
 } from '../../components';
-import { MAX_IMAGES_PER_REPORT } from '../../config';
+import { MAX_DESCRIPTION_LENGTH, MAX_IMAGES_PER_REPORT } from '../../config';
 import { useShake } from '../../hooks';
 import { openAppSettings } from '../../services/permissions';
 import { colors } from '../../theme';
@@ -18,17 +18,23 @@ import { PhotoGrid } from './components/PhotoGrid';
 import { useComposeDraft } from './hooks/useComposeDraft';
 import { styles } from './styles';
 
+const WARN_FROM = Math.floor(MAX_DESCRIPTION_LENGTH * 0.9);
+
+/** Quiet until the limit is close, then amber, then red at the limit. */
+const counterColor = (length: number) => {
+  if (length >= MAX_DESCRIPTION_LENGTH) {
+    return colors.danger;
+  }
+  return length >= WARN_FROM ? colors.warning : colors.textSecondary;
+};
+
 export function ComposeReportScreen() {
   const navigation = useNavigation();
   const draft = useComposeDraft();
   const [pickerOpen, setPickerOpen] = useState(false);
   const shake = useShake(draft.rejectedTaps);
 
-  const hint =
-    draft.submitError ??
-    draft.problem ??
-    'It will send by itself when there is a connection.';
-  const hintIsError = Boolean(draft.submitError ?? draft.problem);
+  const hint = draft.submitError ?? draft.problem;
 
   return (
     <Screen>
@@ -45,18 +51,24 @@ export function ComposeReportScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <AppText
-          variant="bodyStrong"
-          color={colors.textSecondary}
-          style={styles.label}
-        >
-          Description
-        </AppText>
+        <View style={styles.label}>
+          <AppText variant="bodyStrong" color={colors.textSecondary}>
+            Description
+          </AppText>
+          <AppText
+            variant="bodyStrong"
+            color={counterColor(draft.description.length)}
+            accessibilityLiveRegion="polite"
+            accessibilityLabel={`${draft.description.length} of ${MAX_DESCRIPTION_LENGTH} characters`}
+          >
+            {draft.description.length}/{MAX_DESCRIPTION_LENGTH}
+          </AppText>
+        </View>
         <TextArea
           value={draft.description}
           onChangeText={draft.setDescription}
           placeholder="What did you inspect? What did you find?"
-          maxLength={2000}
+          maxLength={MAX_DESCRIPTION_LENGTH}
           accessibilityLabel="Description"
         />
 
@@ -86,25 +98,19 @@ export function ComposeReportScreen() {
             {draft.pickerError}
           </AppText>
         )}
-        <AppText
-          variant="caption"
-          color={colors.textSecondary}
-          style={styles.note}
-        >
-          Big photos are shrunk on your phone to stay under 5 MB. They stay
-          sharp.
-        </AppText>
       </ScrollView>
 
       <Animated.View style={[styles.footer, shake]}>
-        <AppText
-          variant={hintIsError ? 'bodyStrong' : 'caption'}
-          color={hintIsError ? colors.danger : colors.textSecondary}
-          accessibilityLiveRegion="polite"
-          style={styles.hint}
-        >
-          {hint}
-        </AppText>
+        {hint && (
+          <AppText
+            variant="bodyStrong"
+            color={colors.danger}
+            accessibilityLiveRegion="polite"
+            style={styles.hint}
+          >
+            {hint}
+          </AppText>
+        )}
         <Button
           label="Save report"
           onPress={draft.submit}

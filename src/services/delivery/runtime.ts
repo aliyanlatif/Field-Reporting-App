@@ -2,6 +2,7 @@ import { getReportRepository } from '../../db';
 import {
   createQueueWorker,
   QueueWorker,
+  removeReport,
   resetDevice,
   ResetScope,
   reviseFailedReport,
@@ -12,11 +13,14 @@ import { api } from '../api';
 import { subscribeToForeground } from '../appLifecycle';
 import { deleteFiles, removeAllImages, removeOrphanedFiles } from '../images';
 import { createId } from '../../utils/id';
-import { subscribeToConnectivity } from '../network';
+import { readConnectivity, subscribeToConnectivity } from '../network';
 import { useUploadProgressStore } from '../../stores/uploadProgressStore';
 import { notifyQueueChanged } from './queueEvents';
 
 let worker: Promise<QueueWorker> | null = null;
+
+/** What the phone last said about its connection. Delivery waits while it is false. */
+let online = true;
 
 function getWorker() {
   worker ??= getReportRepository().then(repository =>
@@ -26,6 +30,7 @@ function getWorker() {
       deleteFiles,
       notify: notifyQueueChanged,
       onProgress: useUploadProgressStore.getState().report,
+      isOnline: () => online,
     }),
   );
   return worker;
@@ -42,9 +47,14 @@ async function sweepOrphanedFiles() {
 /** Starts unattended delivery and returns a function that stops it. */
 export async function startDelivery() {
   await sweepOrphanedFiles().catch(() => undefined);
+  online = await readConnectivity().catch(() => true);
   return startTriggers(await getWorker(), {
     onForeground: subscribeToForeground,
-    onConnectivity: subscribeToConnectivity,
+    onConnectivity: listener =>
+      subscribeToConnectivity(isOnline => {
+        online = isOnline;
+        listener(isOnline);
+      }),
   });
 }
 
@@ -58,11 +68,12 @@ export async function retryReport(reportId: string) {
   await triggerDelivery();
 }
 
-/** Clears this phone only. The server keeps everything it already has. */
+/** `unsent` clears this phone only; `everything` also deletes every report on the server. */
 export async function resetDeviceData(scope: ResetScope) {
   await resetDevice(
     {
       worker: await getWorker(),
+      api,
       repository: await getReportRepository(),
       deleteFiles,
       removeLocalImages: removeAllImages,
@@ -70,6 +81,20 @@ export async function resetDeviceData(scope: ResetScope) {
     scope,
   );
   useUploadProgressStore.getState().clear();
+  notifyQueueChanged();
+}
+
+/** Deletes one report from the server and this phone, or from this phone only if it never reached the server. */
+export async function deleteReport(reportId: string) {
+  await removeReport(
+    {
+      worker: await getWorker(),
+      api,
+      repository: await getReportRepository(),
+      deleteFiles,
+    },
+    reportId,
+  );
   notifyQueueChanged();
 }
 

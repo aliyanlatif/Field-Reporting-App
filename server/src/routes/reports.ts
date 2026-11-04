@@ -103,6 +103,11 @@ reportsRouter.get('/:id/images/:imageId', async (req, res) => {
   res.type('image/jpeg').send(await store.readImage(report.id, imageId));
 });
 
+reportsRouter.delete('/:id', async (req, res) => {
+  await store.deleteReport(assertValidId(req.params.id, 'report id'));
+  res.status(204).end();
+});
+
 reportsRouter.delete('/', async (_req, res) => {
   await store.clear();
   res.status(204).end();

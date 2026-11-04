@@ -26,6 +26,16 @@ describe('validateDraft', () => {
     },
   );
 
+  test('allows exactly 500 characters and rejects one more', () => {
+    expect(
+      validateDraft({ description: 'a'.repeat(500), imageCount: 1 }),
+    ).toEqual({});
+    expect(
+      validateDraft({ description: 'a'.repeat(501), imageCount: 1 })
+        .description,
+    ).toBeDefined();
+  });
+
   test('rejects zero photos', () => {
     expect(
       validateDraft({ description: 'ok', imageCount: 0 }).images,

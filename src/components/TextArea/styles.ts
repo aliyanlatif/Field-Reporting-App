@@ -5,7 +5,7 @@ import { designPx } from '../../utils/responsiveUtils';
 export const styles = StyleSheet.create({
   field: {
     ...typography.body,
-    minHeight: designPx(104),
+    height: designPx(104),
     paddingVertical: designPx(14),
     paddingHorizontal: designPx(16),
     borderRadius: radius.md,

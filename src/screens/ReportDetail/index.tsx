@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 import {
   AddPhotoSheet,
   AppText,
@@ -20,19 +20,16 @@ import { styles } from './styles';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ReportDetail'>;
 
-const noteFor = (stage: string, needsPhoto: boolean) => {
-  if (stage === 'delivered') {
-    return 'This is what the server holds.';
-  }
-  return needsPhoto
-    ? 'The rest of your reports keep sending while you fix this one.'
-    : 'Sending runs on its own. You can close the app.';
-};
-
 export function ReportDetailScreen({ navigation, route }: Props) {
-  const { item, busy, retry, replacePhoto, removePhoto } = useReportDetail(
-    route.params.reportId,
-  );
+  const {
+    item,
+    busy,
+    deleting,
+    retry,
+    replacePhoto,
+    removePhoto,
+    confirmDelete,
+  } = useReportDetail(route.params.reportId);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   if (!item) {
@@ -59,9 +56,25 @@ export function ReportDetailScreen({ navigation, route }: Props) {
           label="Back to reports"
           onPress={navigation.goBack}
         />
-        <AppText variant="heading" accessibilityRole="header">
+        <AppText
+          variant="heading"
+          accessibilityRole="header"
+          style={styles.title}
+        >
           Report
         </AppText>
+        {deleting ? (
+          <View style={styles.deleting}>
+            <ActivityIndicator color={colors.danger} />
+          </View>
+        ) : (
+          <IconButton
+            icon="trash"
+            label="Delete report"
+            color={colors.danger}
+            onPress={confirmDelete}
+          />
+        )}
       </View>
 
       <ScrollView
@@ -119,13 +132,6 @@ export function ReportDetailScreen({ navigation, route }: Props) {
               )
             )}
           </View>
-          <AppText
-            variant="caption"
-            color={colors.textTertiary}
-            style={styles.note}
-          >
-            {noteFor(item.stage, needsPhoto)}
-          </AppText>
         </View>
       </ScrollView>
 

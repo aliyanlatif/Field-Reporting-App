@@ -43,10 +43,10 @@ const remote = (id: string, createdAt: string): RemoteReport => ({
 });
 
 describe('describeLocalReport', () => {
-  test('a new report is saved on the phone, never "on server"', () => {
+  test('a new report waits for the network, never "uploaded"', () => {
     expect(describeLocalReport(local())).toEqual({
       tone: 'amber',
-      label: 'Saved on phone',
+      label: 'Waiting for network',
     });
   });
 
@@ -117,7 +117,7 @@ describe('buildReportSections', () => {
     expect(sections.onDevice).toEqual([]);
     expect(sections.onServer).toHaveLength(1);
     expect(sections.onServer[0].description).toBe('server a');
-    expect(sections.onServer[0].badge.label).toBe('On server');
+    expect(sections.onServer[0].badge.label).toBe('Uploaded');
   });
 
   test('a delivered report the server list does not show yet stays visible as on the server', () => {
@@ -128,7 +128,7 @@ describe('buildReportSections', () => {
 
     expect(sections.onDevice).toEqual([]);
     expect(sections.onServer.map(item => item.badge.label)).toEqual([
-      'On server',
+      'Uploaded',
     ]);
   });
 
@@ -186,7 +186,7 @@ describe('deriveBanner', () => {
   test('offline reassures that nothing is lost', () => {
     expect(deriveBanner(false)).toEqual({
       tone: 'offline',
-      message: "You're offline. Everything is saved.",
+      message: "You're offline.",
     });
   });
 });

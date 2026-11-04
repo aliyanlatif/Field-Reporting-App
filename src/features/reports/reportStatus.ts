@@ -17,7 +17,7 @@ export interface ReportBadge {
   detail?: string;
 }
 
-export const UPLOADED_BADGE: ReportBadge = { tone: 'ok', label: 'On server' };
+export const UPLOADED_BADGE: ReportBadge = { tone: 'ok', label: 'Uploaded' };
 
 export const stageOf = (report: LocalReport): ReportStage => {
   switch (report.status) {
@@ -67,6 +67,6 @@ export function describeLocalReport(report: LocalReport): ReportBadge {
         detail: report.failureReason ?? undefined,
       };
     case 'saved':
-      return { tone: 'amber', label: 'Saved on phone' };
+      return { tone: 'amber', label: 'Waiting for network' };
   }
 }

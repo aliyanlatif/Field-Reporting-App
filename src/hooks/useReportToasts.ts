@@ -16,7 +16,7 @@ export function useReportToasts() {
           continue;
         }
         if (report.status === 'uploaded') {
-          showToast('On the server. This report is safe now.', 'ok');
+          showToast('Report uploaded successfully.', 'ok');
         } else if (report.status === 'failed_permanent') {
           showToast(
             findRefusedImage(report)

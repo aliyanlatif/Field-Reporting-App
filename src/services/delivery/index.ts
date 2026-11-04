@@ -1,5 +1,6 @@
 export { subscribeToQueueChanges } from './queueEvents';
 export {
+  deleteReport,
   resetDeviceData,
   retryReport,
   reviseReport,

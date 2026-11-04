@@ -15,8 +15,16 @@ interface StartOverSheetProps {
 const plural = (count: number) => `${count} report${count === 1 ? '' : 's'}`;
 
 export function StartOverSheet({ visible, onClose }: StartOverSheetProps) {
-  const { scope, setScope, busy, unsentCount, run, reset } =
-    useResetFlow(onClose);
+  const {
+    scope,
+    setScope,
+    busy,
+    unsentCount,
+    nothingToClear,
+    explainNothingToClear,
+    run,
+    reset,
+  } = useResetFlow(onClose);
 
   useEffect(() => {
     if (visible) {
@@ -40,9 +48,9 @@ export function StartOverSheet({ visible, onClose }: StartOverSheetProps) {
     },
     {
       key: 'everything',
-      title: 'Clear everything on this device',
+      title: 'Clear everything',
       description:
-        'Also clears the cached server list and any saved drafts. Nothing on the server is touched.',
+        'Deletes every report from this phone and from the server, including sent ones. Needs a connection. It cannot be undone.',
     },
   ];
 
@@ -52,8 +60,7 @@ export function StartOverSheet({ visible, onClose }: StartOverSheetProps) {
         Start over
       </AppText>
       <AppText color={colors.textTertiary} style={styles.subtitle}>
-        Pick how much to clear on this phone. Nothing on the server is ever
-        deleted from here.
+        Pick how much to clear. Hold the button to confirm.
       </AppText>
       <View style={styles.options}>
         {options.map(option => (
@@ -71,6 +78,8 @@ export function StartOverSheet({ visible, onClose }: StartOverSheetProps) {
         holdingLabel="Keep holding…"
         icon="trash"
         disabled={busy}
+        dimmed={nothingToClear}
+        onBlocked={explainNothingToClear}
         onComplete={run}
       />
       <AppText

@@ -11,6 +11,13 @@ export const styles = StyleSheet.create({
     paddingLeft: designPx(8),
     paddingRight: spacing.md,
   },
+  title: { flex: 1 },
+  deleting: {
+    width: designPx(52),
+    height: designPx(52),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   content: { paddingBottom: designPx(40) },
   body: { paddingHorizontal: spacing.md, gap: designPx(10) },
   hint: { marginTop: spacing.sm, marginHorizontal: designPx(20) + 2 },

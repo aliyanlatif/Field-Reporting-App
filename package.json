@@ -7,7 +7,10 @@
     "ios": "react-native run-ios",
     "lint": "eslint .",
     "start": "react-native start",
-    "test": "jest"
+    "test": "jest",
+    "android:airplane": "node scripts/android-airplane.js",
+    "airplane:on": "node scripts/airplane.js on",
+    "airplane:off": "node scripts/airplane.js off"
   },
   "dependencies": {
     "@dr.pogodin/react-native-fs": "^2.41.0",

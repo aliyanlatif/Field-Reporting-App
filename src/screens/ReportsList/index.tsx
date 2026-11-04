@@ -1,6 +1,6 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useCallback, useState } from 'react';
-import { RefreshControl, SectionList, View } from 'react-native';
+import { RefreshControl, ScrollView, SectionList, View } from 'react-native';
 import {
   AppText,
   FloatingActionButton,
@@ -8,6 +8,7 @@ import {
   ReportCard,
   Screen,
   SectionHeader,
+  StateMessage,
 } from '../../components';
 import { ReportListItem } from '../../features/reports';
 import { RootStackParamList } from '../../navigation/types';
@@ -31,6 +32,15 @@ export function ReportsListScreen({ navigation }: Props) {
   const list = useReportsList();
   const [startOverOpen, setStartOverOpen] = useState(false);
   const closeStartOver = useCallback(() => setStartOverOpen(false), []);
+
+  const refreshControl = (
+    <RefreshControl
+      refreshing={list.pulling}
+      onRefresh={list.refresh}
+      colors={[colors.primary]}
+      progressBackgroundColor={colors.surface}
+    />
+  );
 
   const sections: ListSection[] = [
     { key: 'device', title: 'Waiting to send', data: list.onDevice },
@@ -60,47 +70,54 @@ export function ReportsListScreen({ navigation }: Props) {
         </View>
       </View>
 
-      <SectionList
-        style={styles.list}
-        contentContainerStyle={styles.content}
-        sections={sections}
-        keyExtractor={item => item.id}
-        stickySectionHeadersEnabled={false}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={list.pulling}
-            onRefresh={list.refresh}
-            colors={[colors.primary]}
-            progressBackgroundColor={colors.surface}
+      {list.isEmpty && !list.remoteError ? (
+        <ScrollView
+          style={styles.list}
+          contentContainerStyle={styles.emptyContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={refreshControl}
+        >
+          <StateMessage
+            icon="camera"
+            title="No reports yet"
+            message="Reports you file will appear here."
           />
-        }
-        renderSectionHeader={({ section }) => (
-          <SectionHeader title={section.title} count={section.data.length} />
-        )}
-        renderItem={({ item }) => (
-          <ReportCard
-            item={item}
-            onPress={() =>
-              navigation.navigate('ReportDetail', { reportId: item.id })
-            }
-          />
-        )}
-        ItemSeparatorComponent={ItemSeparator}
-        renderSectionFooter={({ section }) =>
-          section.key === 'server' ? (
-            <ServerSectionFooter
-              loadingFirstTime={list.loadingFirstTime}
-              loaded={list.remoteLoaded}
-              error={list.remoteError}
-              isEmpty={list.onServer.length === 0 && list.onDevice.length === 0}
-              onRetry={list.retryRemote}
+        </ScrollView>
+      ) : (
+        <SectionList
+          style={styles.list}
+          contentContainerStyle={styles.content}
+          sections={sections}
+          keyExtractor={item => item.id}
+          stickySectionHeadersEnabled={false}
+          showsVerticalScrollIndicator={false}
+          refreshControl={refreshControl}
+          renderSectionHeader={({ section }) => (
+            <SectionHeader title={section.title} count={section.data.length} />
+          )}
+          renderItem={({ item }) => (
+            <ReportCard
+              item={item}
+              onPress={() =>
+                navigation.navigate('ReportDetail', { reportId: item.id })
+              }
             />
-          ) : (
-            <View style={styles.sectionGap} />
-          )
-        }
-      />
+          )}
+          ItemSeparatorComponent={ItemSeparator}
+          renderSectionFooter={({ section }) =>
+            section.key === 'server' ? (
+              <ServerSectionFooter
+                loadingFirstTime={list.loadingFirstTime}
+                loaded={list.remoteLoaded}
+                error={list.remoteError}
+                onRetry={list.retryRemote}
+              />
+            ) : (
+              <View style={styles.sectionGap} />
+            )
+          }
+        />
+      )}
 
       <FloatingActionButton
         label="New report"

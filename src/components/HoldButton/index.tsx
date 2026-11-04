@@ -14,6 +14,9 @@ interface HoldButtonProps {
   onComplete: () => void;
   holdMs?: number;
   disabled?: boolean;
+  /** Greyed out but still pressable: a press calls `onBlocked` to explain why nothing happens. */
+  dimmed?: boolean;
+  onBlocked?: () => void;
 }
 
 /** A destructive action that only fires after the finger stays down, so it can never happen by accident. */
@@ -24,6 +27,8 @@ export function HoldButton({
   onComplete,
   holdMs = 1000,
   disabled = false,
+  dimmed = false,
+  onBlocked,
 }: HoldButtonProps) {
   const reduced = useReducedMotion();
   const fill = useRef(new Animated.Value(0)).current;
@@ -32,6 +37,10 @@ export function HoldButton({
 
   const start = () => {
     if (disabled) {
+      return;
+    }
+    if (dimmed) {
+      onBlocked?.();
       return;
     }
     setHolding(true);
@@ -58,21 +67,23 @@ export function HoldButton({
     }).start();
   };
 
+  const contentColor = dimmed ? colors.disabledText : colors.dangerDeep;
+
   return (
     <PressableScale
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint="Press and hold to confirm"
       accessibilityActions={[{ name: 'activate', label }]}
-      onAccessibilityAction={onComplete}
-      accessibilityState={{ disabled }}
+      onAccessibilityAction={dimmed ? onBlocked : onComplete}
+      accessibilityState={{ disabled: disabled || dimmed }}
       onPressIn={start}
       onPressOut={cancel}
       scaleTo={0.985}
       onLayout={(event: LayoutChangeEvent) =>
         setWidth(event.nativeEvent.layout.width)
       }
-      style={styles.button}
+      style={[styles.button, dimmed && styles.dimmed]}
     >
       <Animated.View
         pointerEvents="none"
@@ -91,8 +102,8 @@ export function HoldButton({
         ]}
       />
       <View style={styles.content}>
-        <Icon name={icon} color={colors.dangerDeep} />
-        <AppText variant="button" color={colors.dangerDeep}>
+        <Icon name={icon} color={contentColor} />
+        <AppText variant="button" color={contentColor}>
           {holding ? holdingLabel : label}
         </AppText>
       </View>
