@@ -2,7 +2,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import { Alert } from 'react-native';
 import { describeFailure } from '../../../features/delivery';
-import { findReportItem, ReportListItem } from '../../../features/reports';
+import { findReportItem } from '../../../features/reports';
 import {
   useCameraPermission,
   useConnectivity,
@@ -22,22 +22,6 @@ import { useReportsStore } from '../../../stores/reportsStore';
 import { showToast } from '../../../stores/toastStore';
 
 type PhotoSource = 'camera' | 'gallery';
-
-const SHORT_TITLE_LENGTH = 40;
-
-const shorten = (text: string) =>
-  text.length > SHORT_TITLE_LENGTH
-    ? `${text.slice(0, SHORT_TITLE_LENGTH).trimEnd()}…`
-    : text;
-
-const confirmationText = (item: ReportListItem) =>
-  item.stage === 'delivered'
-    ? `“${shorten(
-        item.description,
-      )}” and its photos will be deleted from the server and from this phone. This cannot be undone.`
-    : `“${shorten(
-        item.description,
-      )}” has not been sent yet. It and its photos will be removed from this phone. This cannot be undone.`;
 
 export function useReportDetail(reportId: string) {
   const navigation = useNavigation();
@@ -135,7 +119,7 @@ export function useReportDetail(reportId: string) {
     if (!item) {
       return;
     }
-    Alert.alert('Delete this report?', confirmationText(item), [
+    Alert.alert('Are you sure you want to delete this report?', undefined, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: runDelete },
     ]);
