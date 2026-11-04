@@ -10,6 +10,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.dangerSurface,
   },
+  dimmed: { backgroundColor: colors.disabled },
   fill: {
     ...StyleSheet.absoluteFill,
     backgroundColor: colors.dangerFill,

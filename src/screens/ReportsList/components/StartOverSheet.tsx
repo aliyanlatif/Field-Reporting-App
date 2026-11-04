@@ -15,8 +15,16 @@ interface StartOverSheetProps {
 const plural = (count: number) => `${count} report${count === 1 ? '' : 's'}`;
 
 export function StartOverSheet({ visible, onClose }: StartOverSheetProps) {
-  const { scope, setScope, busy, unsentCount, run, reset } =
-    useResetFlow(onClose);
+  const {
+    scope,
+    setScope,
+    busy,
+    unsentCount,
+    nothingToClear,
+    explainNothingToClear,
+    run,
+    reset,
+  } = useResetFlow(onClose);
 
   useEffect(() => {
     if (visible) {
@@ -70,6 +78,8 @@ export function StartOverSheet({ visible, onClose }: StartOverSheetProps) {
         holdingLabel="Keep holding…"
         icon="trash"
         disabled={busy}
+        dimmed={nothingToClear}
+        onBlocked={explainNothingToClear}
         onComplete={run}
       />
       <AppText

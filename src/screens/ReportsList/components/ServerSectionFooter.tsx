@@ -12,7 +12,6 @@ interface ServerSectionFooterProps {
   loadingFirstTime: boolean;
   loaded: boolean;
   error: string | null;
-  isEmpty: boolean;
   onRetry: () => void;
 }
 
@@ -22,7 +21,6 @@ export function ServerSectionFooter({
   loadingFirstTime,
   loaded,
   error,
-  isEmpty,
   onRetry,
 }: ServerSectionFooterProps) {
   if (loadingFirstTime) {
@@ -80,12 +78,5 @@ export function ServerSectionFooter({
       </View>
     );
   }
-  return loaded && isEmpty ? (
-    <StateMessage
-      compact
-      icon="camera"
-      title="No reports yet"
-      message="File your first one. It is saved on this phone straight away, then sent when there is signal."
-    />
-  ) : null;
+  return null;
 }
