@@ -15,6 +15,7 @@ import {
   prepareImage,
   takePhoto,
 } from '../../../services/images';
+import { useReportsStore } from '../../../stores/reportsStore';
 import { showToast } from '../../../stores/toastStore';
 import { PreparedImage } from '../../../types';
 import { createId } from '../../../utils/id';
@@ -184,6 +185,7 @@ export function useComposeDraft() {
         { repository, startDelivery: triggerDelivery, newId: createId },
       );
       submitted.current = true;
+      await useReportsStore.getState().refreshLocal();
       navigation.goBack();
       if (onlineRef.current) {
         showToast('Uploading to server...', 'neutral');

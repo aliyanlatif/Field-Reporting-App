@@ -43,10 +43,10 @@ const remote = (id: string, createdAt: string): RemoteReport => ({
 });
 
 describe('describeLocalReport', () => {
-  test('a new report is saved on the phone, never "on server"', () => {
+  test('a new report waits for the network, never "uploaded"', () => {
     expect(describeLocalReport(local())).toEqual({
       tone: 'amber',
-      label: 'Saved on phone',
+      label: 'Waiting for network',
     });
   });
 

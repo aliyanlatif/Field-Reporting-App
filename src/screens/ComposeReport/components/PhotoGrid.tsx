@@ -87,7 +87,7 @@ function FilledTile({
           ]}
         >
           <AppText variant="captionStrong" color={colors.white}>
-            Shrinking…
+            Processing…
           </AppText>
         </Animated.View>
       )}
