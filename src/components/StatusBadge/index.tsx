@@ -45,6 +45,7 @@ export function StatusBadge({ badge, compact }: StatusBadgeProps) {
         <AppText
           variant="captionStrong"
           color={tone.foreground}
+          numberOfLines={1}
           style={styles.label}
         >
           {badge.label}
