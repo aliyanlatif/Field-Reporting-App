@@ -1,177 +1,187 @@
 # Field Reports
 
-A React Native app for a field inspector who files photo reports (a short description and 1–5 photos) over a 2G connection that often drops. A report is saved on the device first, then delivered to the server unattended, exactly once, whatever the network does.
+A React Native app for field inspectors to create reports with a description and 1–5 photos. Reports are saved on the device first and uploaded automatically when a network connection is available.
 
-- React Native CLI 0.88 (not Expo), React 19, TypeScript in strict mode
-- Android is the supported target. iOS was not set up or tested.
-- A small Express backend in [server/](server/) with runtime failure injection
+## Requirements
 
-## Run it
+- Node.js 22 (`nvm use` reads the version from `.nvmrc`)
+- Android SDK
+- Android emulator or a physical Android device
 
-**Requirements:** Node 22 (`nvm use` reads [.nvmrc](.nvmrc)), the Android SDK, and an emulator or a device with USB or wireless debugging.
+Android is the supported and tested platform. iOS is not configured.
 
-```sh
+## Setup
+
+Install the project and backend dependencies:
+
+```bash
 nvm use
 npm install
-(cd server && npm install)
+cd server && npm install
 ```
 
-**1. Start the backend** (port 4000):
+## Run the app
 
-```sh
+Start the backend in one terminal:
+
+```bash
 cd server
 npm start
 ```
 
-That is the only server-side step. It prints the machine's Wi-Fi address (`On the same Wi-Fi: http://192.168.x.x:4000`) and watches `adb`: it makes `localhost:4000` on every connected Android device (emulator, USB or wireless) reach the server, and re-opens that link if a device reconnects. The app talks to `http://localhost:4000` by default ([src/config/serverAddress.ts](src/config/serverAddress.ts)), so there is no IP address to look up and nothing to edit. `ADB_TUNNEL=off npm start` turns the forwarding off.
+Start Metro in a second terminal:
 
-**2. Start Metro and run the app:**
-
-```sh
-npm start            # Metro
-npm run android      # in another terminal
+```bash
+npm start
 ```
 
-Cleartext HTTP is allowed in **debug builds only** (Android blocks it in release builds by default), so run the app as a debug build against the local server.
+Run the Android app in a third terminal:
 
-## Test it like the graders (airplane mode)
-
-The default setup reaches the server through `adb`, and a phone on _wireless_ adb drops off adb in airplane mode. So for the airplane-mode scenario there is a second command that builds the app to reach the server over **Wi-Fi** instead, with its JavaScript baked in so it can also cold-start with no Metro:
-
-```sh
-# terminal 1
-cd server && npm start
-
-# terminal 2: build and install the airplane-proof app on every connected phone or emulator
-npm run android:airplane
-
-npm run airplane:on        # file a few reports (one with 5 photos), force-quit and reopen the app
-npm run airplane:off       # leave it alone: every report uploads by itself
+```bash
+npm run android
 ```
 
-What to expect: after `airplane:on` the toast says "No internet connection. Waiting for network...", each new report shows a steady **Waiting for network** chip, and nothing is sent. After `airplane:off` the queue starts straight away and every report ends as **Uploaded**, exactly once.
+The default Android setup uses ADB to forward the backend connection to the device. No server IP configuration is normally required. Keep the app running as a debug build when using the local HTTP backend.
 
-Notes:
+## Test offline report delivery
 
-- The phone and the laptop must be on the **same Wi-Fi**. `android:airplane` finds the laptop's address itself and prints it; if it picks the wrong adapter, run `SERVER_HOST=192.168.x.x npm run android:airplane`. If the address changes later, run it again.
-- It warns if nothing answers at that address. Start the server first, and allow Node through the firewall if the OS asks.
-- `airplane:on` and `airplane:off` work on emulators and on phones over USB. A phone on wireless adb disappears from adb in airplane mode, so turn it off on the phone itself. If a phone refuses the command, use the quick settings instead.
-- `npm run android` goes back to the normal setup (Metro and the adb link). The generated address never ends up in git: the script restores `serverAddress.ts` after bundling.
+Use this flow to check that reports are saved locally while offline and uploaded when the connection returns.
 
-For the other graded scenarios (a connection dropped twice mid-upload, a server that refuses or hangs), use the failure injection below.
+1. Start the backend:
 
-**Tests:** `npm test` runs the Jest suite with no UI and no device. `npm run lint` and `npx tsc --noEmit` should both be clean.
+   ```bash
+   cd server
+   npm start
+   ```
 
-## Failure injection
+2. Build and install the airplane-mode version:
 
-The server can misbehave on demand, so every delivery path can be exercised by hand. Settings change at runtime, no restart needed:
+   ```bash
+   npm run android:airplane
+   ```
 
-```sh
-cd server
-npm run chaos -- status                      # show current settings
-npm run chaos -- off                         # back to normal
-npm run chaos -- latency=3000                # delay every /reports request by 3 s
-npm run chaos -- drop=0.3                    # kill the connection on 30% of requests
-npm run chaos -- lose-response=0.3           # handle the request, then drop the response
-npm run chaos -- error=0.3                   # answer 503 on 30% of requests
-npm run chaos -- refuse-uploads=true         # answer 403 to image uploads (not retriable)
-npm run chaos -- hang=true                   # never answer /reports requests
-npm run chaos -- drop-upload-after=300000    # cut an image upload after 300 KB
+3. Turn airplane mode on:
+
+   ```bash
+   npm run airplane:on
+   ```
+
+4. Create a few reports, including one with five photos. Force-quit and reopen the app while still offline.
+
+5. Turn airplane mode off:
+
+   ```bash
+   npm run airplane:off
+   ```
+
+Reports should upload automatically. Their status changes from **Waiting for network** to **Uploaded**.
+
+**Note:** The phone and computer must be connected to the same Wi-Fi network for this test. The airplane-mode build connects to the backend over Wi-Fi and includes its JavaScript bundle, so Metro is not required. If automatic server-address detection selects the wrong network adapter, provide the address manually:
+
+```bash
+SERVER_HOST=192.168.x.x npm run android:airplane
 ```
 
-The same settings can be given at startup as environment variables, for example `CHAOS_ERROR_RATE=0.3 npm start`. The names are `CHAOS_LATENCY_MS`, `CHAOS_DROP_RATE`, `CHAOS_LOSE_RESPONSE_RATE`, `CHAOS_ERROR_RATE`, `CHAOS_REFUSE_UPLOADS=1`, `CHAOS_HANG=1` and `CHAOS_DROP_UPLOAD_AFTER_BYTES`. The settings can also be changed with `GET`, `POST` and `DELETE` on `/chaos`. `/health` is never affected.
+For a phone connected through wireless ADB, turn airplane mode off directly on the phone if the ADB command cannot reach it.
 
-`lose-response` is the one that matters most for correctness: the server stores the data but the client never hears back, which is exactly the case where a naive retry would create a duplicate.
+## Test server failures
 
-## How delivery works
+The backend includes commands for simulating network and server failures. Run these from the `server` directory:
 
-1. **Save first.** Submitting validates the report (non-blank description, 1–5 photos), then writes the report and its image rows to SQLite in one transaction. The UI says "Saved on device", never "uploaded". Nothing waits on the network.
-2. **A queue worker delivers it.** For each due report it calls three idempotent endpoints:
-   - `POST /reports` with a client-generated id. A repeat of the same id returns the existing report, so a lost response is safe to retry.
-   - `PUT /reports/:id/images/:imageId` for every image not yet confirmed. Storing the same image twice changes nothing.
-   - `POST /reports/:id/complete`. The server checks that every declared image arrived (409 with the missing ids otherwise). A report only appears in `GET /reports` after this.
-3. **Every state change is written to SQLite before the next network call**, so a force-quit at any point resumes from the last confirmed step. On launch anything stuck in `uploading` goes back to `queued`, and only the images the server has not confirmed are sent again.
-4. **Local photo files are deleted only after the server confirms the report is complete.**
-
-When delivery runs: at launch, when the app returns to the foreground, when the network comes back, right after a report is saved, and when a retry timer fires. A single-flight guard means these can overlap safely.
-
-### Which failures are retried
-
-| Failure                                                    | What the app does                                                                                                |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| No network, dropped connection, timeout                    | Retry with exponential backoff and jitter (2 s doubling to a 1 minute cap)                                       |
-| 5xx, 429, 408                                              | Same, honouring a longer `Retry-After`                                                                           |
-| 409 "images missing" or 404 "report not found" on complete | The server lost state, so retry (the next attempt re-creates the report and resends missing images)              |
-| Any other 4xx (400, 403, 413, id conflict)                 | Stop. Mark the report **Failed** with the reason and show a **Retry sending** button. Not retried automatically. |
-| A photo file missing on the device                         | Same as above: failed, not retried forever                                                                       |
-
-Transient failures are retried without limit, because delivery has to be unattended. Every request has a timeout, so a server that hangs cannot block the queue.
-
-## Images
-
-- A camera original (an 18 MB file is normal) is resized so its longest edge is at most 2048 px, at JPEG quality 0.85, by `react-native-compressor`, which runs natively off the JS thread.
-- If the result is over 4.5 MB it lowers quality in steps, then resolution, and verifies the final size. If nothing fits it refuses the photo rather than queue it. The app never sends a file over 5 MB, and the server rejects one with 413 as a second line of defence.
-- Only the compressed copy is stored, in the app's own documents folder. The picker's cached original is deleted once the copy is safe.
-- Tested with a 72 MB, 8000×6000 JPEG (about 0.9 s on the emulator, 887 KB out) and with 17 MB originals.
-- Camera permission has three states (granted, denied, blocked). Denied offers "Allow camera", blocked offers "Open Settings", and the permission is re-checked when the app returns to the foreground, so granting it in Settings works without a restart. The gallery needs no permission.
-
-## Start over
-
-Start over offers two scopes, and a one-second press-and-hold confirms either so it cannot happen by accident:
-
-- **Clear unsent reports** deletes the reports still waiting on the phone, and their photos.
-- **Clear everything** deletes every report from the server **and** wipes the local queue and every stored photo.
-
-The server is wiped **first**. If it cannot be reached, nothing local is touched and the user is told, so the device and server never end up half reset. The worker is paused while it runs and the reset waits for any delivery in progress, so a report mid-upload cannot reappear on the server after the wipe.
-
-## Fixing a refused photo
-
-If the server refuses a photo (any non-retriable 4xx), the report stops and shows **Needs you**. The report's detail screen offers **Replace photo** and, when it has more than one photo, **Remove photo**. The server fixes a report's image list when it first sees the id, so the fixed report is queued under a new id (keeping its original time) and the old, never completed one stays invisible on the server.
-
-## Design decisions
-
-- **SQLite is the source of truth for the queue; Zustand holds UI state only.** The durable copy lives in `react-native-nitro-sqlite`. The Zustand store just caches what the screens show, refreshed whenever the queue changes.
-- **The delivery logic has no React in it.** `src/features/delivery` takes the repository and the API as injected dependencies, so Jest runs it against a real SQLite engine and an in-memory fake server that follows the same idempotency rules, with scripted failures. No screen is involved.
-- **The server's copy wins in the list.** The "On the server" section comes from `GET /reports`. A report only shows as local until the server holds it.
-- **"Saved on device" and "Uploaded" never share a sentence.** Statuses are: Saved on device, Uploading 2 of 5, Waiting to retry (with the reason), Failed, Uploaded.
-- **One design language.** `src/theme` holds the Soft palette, the five status tones, Manrope type scale, shadows and motion timings. Shared pieces live in `src/components` (sheet, toast, hold button, timeline, progress ring). Every animation goes through `utils/motion` and respects the system's reduce-motion setting.
-- **Real upload progress.** The API client uploads with `XMLHttpRequest` when a progress callback is given (`fetch` cannot report upload progress); progress is memory only, the queue in SQLite stays the source of truth.
-- **Responsive sizing.** `src/utils/responsiveUtils.ts` provides `width`, `height`, `designPx` and `ResponsiveScaling`. All spacing, sizes and type scale from them. Touch targets are at least 52 dp.
-- **Fonts.** Manrope is bundled as static files in `android/app/src/main/assets/fonts/` (Android picks a weight by file name).
-
-### Project structure
-
+```bash
+npm run chaos -- status
+npm run chaos -- off
+npm run chaos -- latency=3000
+npm run chaos -- drop=0.3
+npm run chaos -- lose-response=0.3
+npm run chaos -- error=0.3
+npm run chaos -- refuse-uploads=true
+npm run chaos -- hang=true
+npm run chaos -- drop-upload-after=300000
 ```
-server/                    Express backend and failure injection
+
+These settings simulate delayed requests, dropped connections, lost responses, server errors, refused image uploads, and requests that never respond. They can be changed while the server is running; a restart is not required.
+
+A lost response is particularly important to test: the server may have saved a report even though the app did not receive confirmation. Retrying must not create a duplicate.
+
+Reset the failure settings with:
+
+```bash
+npm run chaos -- off
+```
+
+## How report delivery works
+
+- **Save locally first:** A report must have a non-blank description and 1–5 photos. The report and its image records are saved to SQLite before upload begins.
+- **Upload safely:** Each report has a client-generated ID. The server uses it to recognize repeated requests. Images are uploaded individually, and the report is marked complete only after the server confirms that all images have arrived.
+- **Recover after interruption:** Delivery progress is stored in SQLite. If the app is force-quit during an upload, it resumes from the last confirmed step when delivery runs again.
+- **Retry temporary failures:** Network errors, timeouts, and selected server responses are retried with exponential backoff. Permanent client errors are marked as failed and require the user to retry after addressing the issue.
+- **Keep local photos until completion:** Photo files are deleted only after the server confirms that the report is complete.
+
+Delivery is triggered when a report is saved, the app launches or returns to the foreground, the network reconnects, and a retry is due.
+
+## Image handling
+
+Photos are compressed before being stored and uploaded:
+
+- The longest image edge is limited to 2048 pixels.
+- JPEG quality is reduced, and resolution is lowered if needed, to keep each image under the 5 MB limit.
+- The app does not queue an image if it cannot meet the size limit.
+- The backend also rejects images over 5 MB.
+
+## Reset options
+
+The app provides two reset options:
+
+- **Clear unsent reports:** Removes reports that are still waiting on the device, along with their photos.
+- **Clear everything:** Deletes server reports and clears the local queue and stored photos.
+
+For a full reset, the server is cleared first. If the server cannot be reached, local data is left untouched.
+
+## Project structure
+
+```text
+server/                  Express backend and failure-injection commands
 src/
-  features/delivery/       queue worker, uploader, retry policy, recovery, reset, triggers (no React)
-  features/compose/        draft validation and submit logic
-  features/reports/        status labels, list merging, banner state
-  db/                      SQLite schema, migrations, repository
-  services/                api client, images, network, permissions, delivery runtime
-  stores/                  Zustand UI state
-  screens/                 ComposeReport, ReportsList, ReportDetail
-  components/  hooks/  theme/  navigation/  config/  types/  utils/
+  features/delivery/     Upload queue, retries, recovery and reset logic
+  features/compose/      Report validation and submission
+  features/reports/      Report status and list handling
+  db/                    SQLite schema and repository
+  services/               API, image, network and permission services
+  stores/                 Zustand UI state
+  screens/                App screens
+  components/             Shared UI components
+  hooks/                  Reusable hooks
+  theme/                  App styling
 ```
 
-## What was tested
+The delivery logic is separate from the React UI. SQLite is the source of truth for queued reports; Zustand is used for UI state.
 
-Unit tests cover retry classification, backoff bounds, idempotent resubmission after a lost response, recovery of stuck uploads, resending only unfinished images, the reset ordering and validation rules.
+## Tests
 
-On an Android emulator I ran the full scenario by hand: airplane mode, three reports (one with five 17 MB originals), force-quit twice, reopen, then network back with uploads cut mid-transfer and no input. All three reports arrived exactly once, with every image intact and under the cap. I also checked a force-quit in the middle of an upload (only the missing image was resent), a server that refuses uploads, a server that hangs, backgrounding with work outstanding, a sixth photo, zero photos, a blank description, camera permission denied then granted, and reset both offline and online.
+Run the automated tests:
 
-## What was knowingly left out
+```bash
+npm test
+```
 
-- **True background delivery.** Delivery runs while the app is alive. When the app is backgrounded, JS timers do not fire, so nothing is sent until the app returns to the foreground. Moving the worker into an Android background job is the biggest gap.
-- **iOS.** Not configured or tested.
-- **Testing on a physical phone and a real 2G link.** Everything above ran on an emulator, and the emulator's network throttle does not slow traffic to the host machine, so slow uploads were simulated with injected server latency.
-- **No login, push, comments, maps, video, or editing uploaded reports,** as the brief says.
-- **Server storage is in memory** for report data (images are written to `server/data/`). Restarting the server forgets completed reports. The app recovers from that, because a missing report is simply created again.
+Run linting and TypeScript checks:
 
-## With another day
+```bash
+npm run lint
+npx tsc --noEmit
+```
 
-- Run the queue from an Android background job so delivery continues with the app closed.
-- Detect a stalled upload from upload-progress events instead of a total timeout that scales with file size, and resume interrupted uploads in chunks, which matters most on a link that drops constantly.
-- Persist the server's data and add an end-to-end test (for example Detox) that drives the airplane-mode scenario.
-- Keep a half-written draft across a force-quit.
-- An accessibility pass with a screen reader and a larger-font audit.
+The tests cover retry behavior, duplicate-safe resubmission, recovery after interrupted uploads, image upload progress, reset ordering, and report validation.
+
+## Known limitations
+
+- **Background delivery:** Uploads run while the app is active. If the app is backgrounded or closed, delivery resumes when it returns to the foreground. A native Android background job would be needed for reliable delivery while the app is closed.
+- **Platform testing:** The app was tested on an Android emulator and on a physical android device but not on a real 2G connection. Slow and unreliable network behavior was simulated using the backend failure-injection commands.
+- **Server persistence:** Report data is held in memory by the backend, while image files are stored under `server/data/`. Restarting the server clears its report records.
+- **iOS:** Not configured or tested.
+
+## If I had more time
+
+- Move delivery into an Android background job so uploads can continue when the app is closed.
+- Test accessibility, including screen-reader support and larger text sizes.
