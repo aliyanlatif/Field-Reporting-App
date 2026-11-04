@@ -14,12 +14,13 @@ import {
   prepareImage,
   takePhoto,
 } from '../../../services/images';
-import { NewImage } from '../../../types';
+import { showToast } from '../../../stores/toastStore';
+import { PreparedImage } from '../../../types';
 import { createId } from '../../../utils/id';
 
 export type DraftImage = { key: string } & (
   | { status: 'processing' }
-  | { status: 'ready'; image: NewImage }
+  | { status: 'ready'; image: PreparedImage }
   | { status: 'error'; message: string }
 );
 
@@ -32,7 +33,8 @@ export function useComposeDraft() {
   const navigation = useNavigation();
   const camera = useCameraPermission();
   const [description, setDescription] = useState('');
-  const [descriptionTouched, setDescriptionTouched] = useState(false);
+  const [triedSubmit, setTriedSubmit] = useState(false);
+  const [rejectedTaps, setRejectedTaps] = useState(0);
   const [images, setImages] = useState<DraftImage[]>([]);
   const [pickerError, setPickerError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -179,28 +181,45 @@ export function useComposeDraft() {
       );
       submitted.current = true;
       navigation.goBack();
+      showToast('Saved on this phone. It will send on its own.', 'amber');
     } catch {
       setSubmitError('Could not save the report on this device. Try again.');
       setSubmitting(false);
     }
   }, [description, hasErrors, navigation, processing, readyImages, submitting]);
 
+  const canSubmit = !hasErrors && !processing && !submitting;
+
+  /** Saves when ready. Otherwise it explains what is missing and asks the screen to shake. */
+  const attemptSubmit = useCallback(() => {
+    if (canSubmit) {
+      return submit();
+    }
+    setTriedSubmit(true);
+    setRejectedTaps(count => count + 1);
+  }, [canSubmit, submit]);
+
+  const problem =
+    errors.description ??
+    errors.images ??
+    (processing ? 'Hang on, a photo is still being prepared.' : undefined);
+
   return {
     description,
     setDescription,
-    descriptionError: descriptionTouched ? errors.description : undefined,
-    touchDescription: () => setDescriptionTouched(true),
     images,
     imageSlotsLeft: MAX_IMAGES_PER_REPORT - images.length,
-    missing: Object.values(errors),
-    canSubmit: !hasErrors && !processing && !submitting,
+    canSubmit,
     submitting,
     submitError,
+    /** Only shown after the user tried to save, so the form never nags before then. */
+    problem: triedSubmit ? problem : undefined,
+    rejectedTaps,
     pickerError,
     cameraStatus: cameraRequested ? camera.status : null,
     addFromCamera,
     addFromGallery,
     removeImage,
-    submit,
+    submit: attemptSubmit,
   };
 }

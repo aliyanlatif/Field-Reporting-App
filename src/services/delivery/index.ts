@@ -1,7 +1,8 @@
 export { subscribeToQueueChanges } from './queueEvents';
 export {
-  resetAll,
+  resetDeviceData,
   retryReport,
+  reviseReport,
   startDelivery,
   triggerDelivery,
 } from './runtime';

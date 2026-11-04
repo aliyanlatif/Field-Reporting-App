@@ -2,6 +2,8 @@ import { ImageStatus, LocalReport, NewReport, RetrySchedule } from './report';
 
 export interface ReportRepository {
   create(report: NewReport): Promise<void>;
+  /** Atomically swaps a report for a revised one: the old report and its images go, the new one is queued. */
+  replace(oldId: string, report: NewReport): Promise<void>;
   get(id: string): Promise<LocalReport | null>;
   list(): Promise<LocalReport[]>;
   findDue(now: number): Promise<LocalReport[]>;

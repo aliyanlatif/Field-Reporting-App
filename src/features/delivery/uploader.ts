@@ -10,12 +10,14 @@ export interface UploaderDeps {
   repository: ReportRepository;
   api: ReportsApi;
   notify: () => void;
+  /** Called with the fraction (0 to 1) of an image already sent. Optional: delivery works without a screen. */
+  onProgress?: (imageId: string, fraction: number) => void;
 }
 
 /** Sends one report: every step is idempotent and persisted, so a retry resumes where it stopped. */
 export async function deliverReport(
   report: LocalReport,
-  { repository, api, notify }: UploaderDeps,
+  { repository, api, notify, onProgress }: UploaderDeps,
 ) {
   await repository.markUploading(report.id);
   notify();
@@ -34,12 +36,13 @@ export async function deliverReport(
     await repository.markImage(image.id, 'uploading');
     notify();
     try {
-      await api.uploadImage(report.id, {
-        id: image.id,
-        uri: image.localUri,
-        sizeBytes: image.sizeBytes,
-      });
+      await api.uploadImage(
+        report.id,
+        { id: image.id, uri: image.localUri, sizeBytes: image.sizeBytes },
+        onProgress && (fraction => onProgress(image.id, fraction)),
+      );
     } catch (error) {
+      onProgress?.(image.id, 0);
       await repository.markImage(
         image.id,
         isRetryable(error) ? 'pending' : 'failed',
@@ -47,6 +50,7 @@ export async function deliverReport(
       notify();
       throw error;
     }
+    onProgress?.(image.id, 1);
     await repository.markImage(image.id, 'uploaded');
     notify();
   }

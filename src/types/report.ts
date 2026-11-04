@@ -32,6 +32,11 @@ export interface NewImage {
   sizeBytes: number;
 }
 
+/** A photo ready to queue, plus how big it was before it was shrunk (for display only, never stored). */
+export interface PreparedImage extends NewImage {
+  originalSizeBytes: number;
+}
+
 export interface NewReport {
   id: string;
   description: string;

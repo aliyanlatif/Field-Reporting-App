@@ -4,6 +4,7 @@ export type {
   LocalReport,
   NewImage,
   NewReport,
+  PreparedImage,
   ReportStatus,
   RetrySchedule,
 } from './report';

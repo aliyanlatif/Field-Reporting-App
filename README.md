@@ -98,10 +98,16 @@ Transient failures are retried without limit, because delivery has to be unatten
 
 ## Start over
 
-The reset wipes the local queue and every stored photo **and** deletes all reports on the server, after a confirmation dialog. The order is deliberate:
+Start over clears **this phone only**. The server is never touched. The sheet offers two scopes, and a one-second press-and-hold confirms either so it cannot happen by accident:
 
-- The server is wiped **first**. If it cannot be reached, nothing local is touched and the user is told, so the device and server never end up half reset.
-- The worker is paused while it runs and the reset waits for any delivery in progress, so a report mid-upload cannot reappear on the server after the wipe.
+- **Clear unsent reports** deletes the reports still waiting on the phone, and their photos.
+- **Clear everything on this device** also clears the cached server list and every stored photo. The list is fetched from the server again straight after.
+
+The worker is paused while it runs and the reset waits for any delivery in progress, so nothing is sent mid-wipe.
+
+## Fixing a refused photo
+
+If the server refuses a photo (any non-retriable 4xx), the report stops and shows **Needs you**. The report's detail screen offers **Replace photo** and, when it has more than one photo, **Remove photo**. The server fixes a report's image list when it first sees the id, so the fixed report is queued under a new id (keeping its original time) and the old, never completed one stays invisible on the server.
 
 ## Design decisions
 
@@ -109,7 +115,10 @@ The reset wipes the local queue and every stored photo **and** deletes all repor
 - **The delivery logic has no React in it.** `src/features/delivery` takes the repository and the API as injected dependencies, so Jest runs it against a real SQLite engine and an in-memory fake server that follows the same idempotency rules, with scripted failures. No screen is involved.
 - **The server's copy wins in the list.** The "On the server" section comes from `GET /reports`. A report only shows as local until the server holds it.
 - **"Saved on device" and "Uploaded" never share a sentence.** Statuses are: Saved on device, Uploading 2 of 5, Waiting to retry (with the reason), Failed, Uploaded.
+- **One design language.** `src/theme` holds the Soft palette, the five status tones, Manrope type scale, shadows and motion timings. Shared pieces live in `src/components` (sheet, toast, hold button, timeline, progress ring). Every animation goes through `utils/motion` and respects the system's reduce-motion setting.
+- **Real upload progress.** The API client uploads with `XMLHttpRequest` when a progress callback is given (`fetch` cannot report upload progress); progress is memory only, the queue in SQLite stays the source of truth.
 - **Responsive sizing.** `src/utils/responsiveUtils.ts` provides `width`, `height`, `designPx` and `ResponsiveScaling`. All spacing, sizes and type scale from them. Touch targets are at least 52 dp.
+- **Fonts.** Manrope is bundled as static files in `android/app/src/main/assets/fonts/` (Android picks a weight by file name).
 
 ### Project structure
 

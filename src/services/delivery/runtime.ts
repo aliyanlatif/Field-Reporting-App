@@ -2,13 +2,18 @@ import { getReportRepository } from '../../db';
 import {
   createQueueWorker,
   QueueWorker,
-  resetEverything,
+  resetDevice,
+  ResetScope,
+  reviseFailedReport,
+  Revision,
   startTriggers,
 } from '../../features/delivery';
 import { api } from '../api';
 import { subscribeToForeground } from '../appLifecycle';
 import { deleteFiles, removeAllImages, removeOrphanedFiles } from '../images';
+import { createId } from '../../utils/id';
 import { subscribeToConnectivity } from '../network';
+import { useUploadProgressStore } from '../../stores/uploadProgressStore';
 import { notifyQueueChanged } from './queueEvents';
 
 let worker: Promise<QueueWorker> | null = null;
@@ -20,6 +25,7 @@ function getWorker() {
       api,
       deleteFiles,
       notify: notifyQueueChanged,
+      onProgress: useUploadProgressStore.getState().report,
     }),
   );
   return worker;
@@ -52,12 +58,33 @@ export async function retryReport(reportId: string) {
   await triggerDelivery();
 }
 
-export async function resetAll() {
-  await resetEverything({
-    worker: await getWorker(),
-    api,
-    repository: await getReportRepository(),
-    removeLocalImages: removeAllImages,
-  });
+/** Clears this phone only. The server keeps everything it already has. */
+export async function resetDeviceData(scope: ResetScope) {
+  await resetDevice(
+    {
+      worker: await getWorker(),
+      repository: await getReportRepository(),
+      deleteFiles,
+      removeLocalImages: removeAllImages,
+    },
+    scope,
+  );
+  useUploadProgressStore.getState().clear();
   notifyQueueChanged();
+}
+
+/** Replaces or removes the photo the server refused, then sends the report again. Returns the report's new id. */
+export async function reviseReport(reportId: string, revision: Revision) {
+  const newId = await reviseFailedReport(
+    {
+      repository: await getReportRepository(),
+      deleteFiles,
+      newId: createId,
+    },
+    reportId,
+    revision,
+  );
+  notifyQueueChanged();
+  await triggerDelivery();
+  return newId;
 }

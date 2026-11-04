@@ -1,49 +1,72 @@
 import { LocalReport } from '../../types';
 
-export type BadgeTone =
-  | 'neutral'
-  | 'progress'
-  | 'warning'
-  | 'success'
-  | 'danger';
+/** How a status looks: the UI maps each tone to its colors. */
+export type StatusTone = 'ok' | 'send' | 'wait' | 'amber' | 'bad';
+
+/** Where a report is on its way to the server. */
+export type ReportStage =
+  | 'saved'
+  | 'sending'
+  | 'retrying'
+  | 'needs-you'
+  | 'delivered';
 
 export interface ReportBadge {
-  tone: BadgeTone;
+  tone: StatusTone;
   label: string;
   detail?: string;
 }
 
-export const UPLOADED_BADGE: ReportBadge = {
-  tone: 'success',
-  label: 'Uploaded',
+export const UPLOADED_BADGE: ReportBadge = { tone: 'ok', label: 'On server' };
+
+export const stageOf = (report: LocalReport): ReportStage => {
+  switch (report.status) {
+    case 'uploading':
+      return 'sending';
+    case 'failed_permanent':
+      return 'needs-you';
+    case 'uploaded':
+      return 'delivered';
+    case 'queued':
+      return report.attempts > 0 ? 'retrying' : 'saved';
+  }
 };
 
+export const countSent = (report: LocalReport) =>
+  report.images.filter(image => image.status === 'uploaded').length;
+
+/** The photo the server refused, if that is why the report stopped. */
+export const findRefusedImage = (report: LocalReport) =>
+  report.status === 'failed_permanent'
+    ? report.images.find(image => image.status === 'failed')
+    : undefined;
+
 export function describeLocalReport(report: LocalReport): ReportBadge {
-  switch (report.status) {
-    case 'uploading': {
-      const done = report.images.filter(
-        image => image.status === 'uploaded',
-      ).length;
+  switch (stageOf(report)) {
+    case 'sending':
       return {
-        tone: 'progress',
-        label: `Uploading ${done} of ${report.images.length}`,
+        tone: 'send',
+        label: `Sending · ${countSent(report)} of ${
+          report.images.length
+        } photos`,
       };
-    }
-    case 'failed_permanent':
+    case 'needs-you':
+      return findRefusedImage(report)
+        ? { tone: 'bad', label: 'Needs you · photo refused' }
+        : {
+            tone: 'bad',
+            label: 'Needs you',
+            detail: report.failureReason ?? undefined,
+          };
+    case 'delivered':
+      return UPLOADED_BADGE;
+    case 'retrying':
       return {
-        tone: 'danger',
-        label: 'Failed',
+        tone: 'wait',
+        label: 'Waiting to retry',
         detail: report.failureReason ?? undefined,
       };
-    case 'uploaded':
-      return UPLOADED_BADGE;
-    case 'queued':
-      return report.attempts > 0
-        ? {
-            tone: 'warning',
-            label: 'Waiting to retry',
-            detail: report.failureReason ?? undefined,
-          }
-        : { tone: 'neutral', label: 'Saved on device' };
+    case 'saved':
+      return { tone: 'amber', label: 'Saved on phone' };
   }
 }

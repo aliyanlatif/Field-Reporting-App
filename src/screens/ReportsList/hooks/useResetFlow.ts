@@ -1,39 +1,40 @@
 import { useCallback, useState } from 'react';
-import { Alert } from 'react-native';
-import { describeFailure } from '../../../features/delivery';
-import { resetAll } from '../../../services/delivery';
+import { ResetScope } from '../../../features/delivery';
+import { resetDeviceData } from '../../../services/delivery';
 import { useReportsStore } from '../../../stores/reportsStore';
+import { showToast } from '../../../stores/toastStore';
 
-export function useResetFlow() {
+const DONE_MESSAGE: Record<ResetScope, string> = {
+  unsent: 'Unsent reports cleared. The server was not touched.',
+  everything: 'Cleared this phone. The server was not touched.',
+};
+
+export function useResetFlow(onDone: () => void) {
+  const [scope, setScope] = useState<ResetScope>('unsent');
   const [busy, setBusy] = useState(false);
+  const unsentCount = useReportsStore(
+    state => state.local.filter(report => report.status !== 'uploaded').length,
+  );
 
   const run = useCallback(async () => {
     setBusy(true);
     try {
-      await resetAll();
+      await resetDeviceData(scope);
       const { clear, refreshLocal, refreshRemote } = useReportsStore.getState();
-      clear();
+      if (scope === 'everything') {
+        clear();
+      }
       await Promise.all([refreshLocal(), refreshRemote()]);
-    } catch (error) {
-      Alert.alert(
-        'Could not start over',
-        `${describeFailure(error)}. Try again when the connection is back.`,
-      );
+      showToast(DONE_MESSAGE[scope], 'ok');
+      onDone();
+    } catch {
+      showToast('Could not clear this phone. Try again.', 'bad');
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [onDone, scope]);
 
-  const confirm = useCallback(() => {
-    Alert.alert(
-      'Start over?',
-      "This deletes every report from this device and from the server, including reports that haven't been sent yet. It can't be undone.",
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete everything', style: 'destructive', onPress: run },
-      ],
-    );
-  }, [run]);
+  const reset = useCallback(() => setScope('unsent'), []);
 
-  return { busy, confirm };
+  return { scope, setScope, busy, unsentCount, run, reset };
 }

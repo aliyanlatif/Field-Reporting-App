@@ -29,17 +29,81 @@ const parseRetryAfterMs = (header: string | null) => {
   return Number.isFinite(seconds) ? seconds * 1000 : undefined;
 };
 
-async function toHttpError(response: Response) {
-  const body: ErrorBody = await response.json().catch(() => ({}));
+function buildHttpError(
+  status: number,
+  bodyText: string,
+  retryAfter: string | null,
+) {
+  let body: ErrorBody = {};
+  try {
+    body = JSON.parse(bodyText) as ErrorBody;
+  } catch {
+    // The body is optional; the status alone is enough to classify the error.
+  }
   return new ApiError({
     kind: 'http',
-    status: response.status,
+    status,
     code: body.error,
-    message: body.message ?? `HTTP ${response.status}`,
-    retryAfterMs: parseRetryAfterMs(response.headers.get('retry-after')),
+    message: body.message ?? `HTTP ${status}`,
+    retryAfterMs: parseRetryAfterMs(retryAfter),
     missingImageIds: body.missing,
   });
 }
+
+const toHttpError = async (response: Response) =>
+  buildHttpError(
+    response.status,
+    await response.text().catch(() => ''),
+    response.headers.get('retry-after'),
+  );
+
+interface ProgressUpload {
+  url: string;
+  body: Blob;
+  timeoutMs: number;
+  onProgress: (fraction: number) => void;
+}
+
+/** fetch cannot report upload progress, XMLHttpRequest can. Used only when a caller wants progress. */
+const uploadWithProgress = ({
+  url,
+  body,
+  timeoutMs,
+  onProgress,
+}: ProgressUpload) =>
+  new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', url);
+    xhr.setRequestHeader('content-type', 'image/jpeg');
+    xhr.timeout = timeoutMs;
+    xhr.upload.onprogress = event => {
+      if (event.lengthComputable && event.total > 0) {
+        onProgress(Math.min(1, event.loaded / event.total));
+      }
+    };
+    xhr.onload = () =>
+      xhr.status >= 200 && xhr.status < 300
+        ? resolve()
+        : reject(
+            buildHttpError(
+              xhr.status,
+              xhr.responseText,
+              xhr.getResponseHeader('retry-after'),
+            ),
+          );
+    xhr.onerror = () =>
+      reject(
+        new ApiError({ kind: 'network', message: 'Network request failed' }),
+      );
+    xhr.ontimeout = () =>
+      reject(
+        new ApiError({
+          kind: 'timeout',
+          message: `No response within ${timeoutMs} ms`,
+        }),
+      );
+    xhr.send(body);
+  });
 
 export function createApiClient({
   baseUrl,
@@ -91,14 +155,25 @@ export function createApiClient({
   return {
     createReport: (report: CreateReportRequest) => post('/reports', report),
 
-    async uploadImage(reportId: string, image: ImageUpload) {
+    async uploadImage(reportId: string, image: ImageUpload, onProgress) {
       const body = await readImage(image.uri).catch(() => {
         throw new LocalFileError(image.uri);
       });
+      const path = `/reports/${reportId}/images/${image.id}`;
+      const timeoutMs = uploadTimeout(image.sizeBytes);
+      if (onProgress) {
+        await uploadWithProgress({
+          url: `${baseUrl}${path}`,
+          body,
+          timeoutMs,
+          onProgress,
+        });
+        return;
+      }
       await request<void>(
-        `/reports/${reportId}/images/${image.id}`,
+        path,
         { method: 'PUT', headers: { 'content-type': 'image/jpeg' }, body },
-        uploadTimeout(image.sizeBytes),
+        timeoutMs,
       );
     },
 

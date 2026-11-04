@@ -272,3 +272,21 @@ test('notifies after each persisted change', async () => {
 
   expect(notify.mock.calls.length).toBeGreaterThanOrEqual(4);
 });
+
+test('reports how much of each photo was sent', async () => {
+  const progress: Array<[string, number]> = [];
+  const reporting = createQueueWorker({
+    repository,
+    api,
+    deleteFiles: async () => undefined,
+    onProgress: (imageId, fraction) => progress.push([imageId, fraction]),
+  });
+  await repository.create(newReport('p', 1, 1));
+
+  await reporting.processQueue();
+
+  expect(progress).toEqual([
+    ['p-i0', 0.5],
+    ['p-i0', 1],
+  ]);
+});

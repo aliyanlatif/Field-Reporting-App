@@ -1,6 +1,9 @@
 import { LocalReport, RemoteReport } from '../../../types';
 import { deriveBanner } from '../banner';
-import { buildReportSections } from '../reportItems';
+import { describePhoto } from '../photoStatus';
+import { buildTimeline } from '../timeline';
+import { summarizeQueue } from '../summary';
+import { buildReportSections, ReportPhoto } from '../reportItems';
 import { describeLocalReport } from '../reportStatus';
 
 const local = (overrides: Partial<LocalReport> = {}): LocalReport => ({
@@ -41,10 +44,10 @@ const remote = (id: string, createdAt: string): RemoteReport => ({
 });
 
 describe('describeLocalReport', () => {
-  test('a new report is saved on the device, never "uploaded"', () => {
+  test('a new report is saved on the phone, never "on server"', () => {
     expect(describeLocalReport(local())).toEqual({
-      tone: 'neutral',
-      label: 'Saved on device',
+      tone: 'amber',
+      label: 'Saved on phone',
     });
   });
 
@@ -52,7 +55,10 @@ describe('describeLocalReport', () => {
     const report = local({ status: 'uploading' });
     report.images[0].status = 'uploaded';
 
-    expect(describeLocalReport(report).label).toBe('Uploading 1 of 2');
+    expect(describeLocalReport(report)).toEqual({
+      tone: 'send',
+      label: 'Sending · 1 of 2 photos',
+    });
   });
 
   test('a report that failed an attempt says it will retry and why', () => {
@@ -61,22 +67,31 @@ describe('describeLocalReport', () => {
         local({ attempts: 2, failureReason: "Couldn't reach the server" }),
       ),
     ).toEqual({
-      tone: 'warning',
+      tone: 'wait',
       label: 'Waiting to retry',
       detail: "Couldn't reach the server",
     });
   });
 
-  test('a refused report is a failure with its reason', () => {
+  test('a refused photo needs the user', () => {
+    const report = local({
+      status: 'failed_permanent',
+      failureReason: 'HTTP 403',
+    });
+    report.images[1].status = 'failed';
+
+    expect(describeLocalReport(report)).toEqual({
+      tone: 'bad',
+      label: 'Needs you · photo refused',
+    });
+  });
+
+  test('another permanent failure shows its reason', () => {
     expect(
       describeLocalReport(
-        local({ status: 'failed_permanent', failureReason: 'HTTP 403' }),
+        local({ status: 'failed_permanent', failureReason: 'HTTP 400' }),
       ),
-    ).toEqual({
-      tone: 'danger',
-      label: 'Failed',
-      detail: 'HTTP 403',
-    });
+    ).toEqual({ tone: 'bad', label: 'Needs you', detail: 'HTTP 400' });
   });
 });
 
@@ -103,10 +118,10 @@ describe('buildReportSections', () => {
     expect(sections.onDevice).toEqual([]);
     expect(sections.onServer).toHaveLength(1);
     expect(sections.onServer[0].description).toBe('server a');
-    expect(sections.onServer[0].badge.label).toBe('Uploaded');
+    expect(sections.onServer[0].badge.label).toBe('On server');
   });
 
-  test('a delivered report the server list does not show yet stays visible as uploaded', () => {
+  test('a delivered report the server list does not show yet stays visible as on the server', () => {
     const sections = buildReportSections(
       [local({ id: 'a', status: 'uploaded' })],
       [],
@@ -114,54 +129,162 @@ describe('buildReportSections', () => {
 
     expect(sections.onDevice).toEqual([]);
     expect(sections.onServer.map(item => item.badge.label)).toEqual([
-      'Uploaded',
+      'On server',
     ]);
   });
 
-  test('flags failed reports so the screen can offer a retry', () => {
-    const sections = buildReportSections(
-      [local({ status: 'failed_permanent' })],
-      [],
-    );
+  test('flags failed reports and names the refused photo', () => {
+    const report = local({ status: 'failed_permanent' });
+    report.images[0].status = 'failed';
+    const sections = buildReportSections([report], []);
 
     expect(sections.onDevice[0].failed).toBe(true);
+    expect(sections.onDevice[0].refusedImageId).toBe('i1');
   });
 });
 
-describe('deriveBanner', () => {
-  test('is hidden when online with nothing pending', () => {
-    expect(deriveBanner(true, [local({ status: 'uploaded' })])).toBeNull();
+describe('summarizeQueue', () => {
+  const summary = (
+    reports: LocalReport[],
+    overrides: Partial<Parameters<typeof summarizeQueue>[0]> = {},
+  ) =>
+    summarizeQueue({
+      online: true,
+      local: reports,
+      serverCount: 3,
+      checkingServer: false,
+      ...overrides,
+    });
+
+  test('nothing unsent means everything is safe', () => {
+    expect(summary([])).toMatchObject({
+      tone: 'ok',
+      title: 'All 3 reports safe on the server',
+    });
   });
 
-  test('online with only failed reports points to the retry button', () => {
-    expect(deriveBanner(true, [local({ status: 'failed_permanent' })])).toEqual(
+  test('says so while the server list is still loading', () => {
+    expect(summary([], { serverCount: 0, checkingServer: true })).toMatchObject(
       {
-        tone: 'warning',
-        message: '1 report could not be sent. Tap Retry sending',
+        title: 'Nothing waiting to send',
+        subtitle: 'Checking the server…',
       },
     );
   });
 
-  test('offline with nothing pending only says so', () => {
-    expect(deriveBanner(false, [])?.message).toBe("You're offline");
-  });
+  test('a report that needs the user outranks everything else', () => {
+    const refused = local({ status: 'failed_permanent' });
+    refused.images[0].status = 'failed';
 
-  test('offline with pending reports counts them without claiming they are uploaded', () => {
-    const message =
-      deriveBanner(false, [local(), local({ id: 'r2' })])?.message ?? '';
-
-    expect(message).toContain('2 reports waiting on this device');
-    expect(message.toLowerCase()).not.toContain('uploaded');
-  });
-
-  test('online and sending shows progress', () => {
-    expect(deriveBanner(true, [local({ status: 'uploading' })])).toEqual({
-      tone: 'progress',
-      message: 'Sending 1 report',
+    expect(
+      summary([refused, local({ id: 'r2' })], { online: false }),
+    ).toMatchObject({
+      tone: 'bad',
+      title: '1 report needs you',
     });
   });
 
-  test('online but failing to reach the server says so', () => {
-    expect(deriveBanner(true, [local({ attempts: 1 })])?.tone).toBe('warning');
+  test('offline reports wait for the network', () => {
+    expect(summary([local()], { online: false }).tone).toBe('wait');
+  });
+
+  test('counts photos while sending', () => {
+    const sending = local({ status: 'uploading' });
+    sending.images[0].status = 'uploaded';
+
+    expect(summary([sending])).toEqual({
+      tone: 'send',
+      title: 'Sending 1 report',
+      subtitle: '1 of 2 photos sent',
+    });
+  });
+
+  test('online but unable to reach the server says so', () => {
+    expect(summary([local({ attempts: 1 })]).subtitle).toContain(
+      "Can't reach the server",
+    );
+  });
+
+  test('a fresh report is saved and about to send', () => {
+    expect(summary([local()])).toMatchObject({
+      tone: 'amber',
+      title: '1 saved on phone',
+    });
+  });
+});
+
+describe('buildTimeline', () => {
+  const itemFor = (report: LocalReport) =>
+    buildReportSections([report], []).onDevice[0];
+
+  test('a delivered report is done at every step', () => {
+    const [item] = buildReportSections(
+      [],
+      [remote('a', '2026-01-01T00:00:00Z')],
+    ).onServer;
+
+    expect(buildTimeline(item).map(step => step.state)).toEqual([
+      'done',
+      'done',
+      'done',
+    ]);
+  });
+
+  test('a refused photo turns the sending step red', () => {
+    const report = local({ status: 'failed_permanent' });
+    report.images[0].status = 'failed';
+
+    expect(buildTimeline(itemFor(report))[1]).toMatchObject({
+      state: 'bad',
+      detail: 'One photo was refused',
+    });
+  });
+
+  test('a report that has not started only has its first step done', () => {
+    expect(buildTimeline(itemFor(local())).map(step => step.state)).toEqual([
+      'done',
+      'todo',
+      'todo',
+    ]);
+  });
+});
+
+describe('deriveBanner', () => {
+  test('is hidden while online', () => {
+    expect(deriveBanner(true)).toBeNull();
+  });
+
+  test('offline reassures that nothing is lost', () => {
+    expect(deriveBanner(false)).toEqual({
+      tone: 'offline',
+      message: "You're offline. Everything is saved.",
+    });
+  });
+});
+
+describe('describePhoto', () => {
+  const photo = (status: ReportPhoto['status']): ReportPhoto => ({
+    id: 'p',
+    uri: 'file:///p.jpg',
+    status,
+  });
+
+  test('says how far a photo in flight has got', () => {
+    expect(describePhoto(photo('uploading'), 0.634)).toEqual({
+      tone: 'send',
+      label: 'Sending 63%',
+    });
+  });
+
+  test('a refused photo says so', () => {
+    expect(describePhoto(photo('failed'), 0).tone).toBe('bad');
+  });
+
+  test('photos the server holds count as uploaded', () => {
+    expect(describePhoto(photo(null), 0).label).toBe('Uploaded');
+  });
+
+  test('a photo not yet sent is queued', () => {
+    expect(describePhoto(photo('pending'), 0).label).toBe('Queued');
   });
 });

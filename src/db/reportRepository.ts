@@ -1,5 +1,5 @@
 import { NitroSQLiteConnection } from 'react-native-nitro-sqlite';
-import { ReportRepository } from '../types';
+import { NewReport, ReportRepository } from '../types';
 import { ImageRow, ReportRow, toLocalImage, toLocalReport } from './rowMapping';
 
 export type Database = Pick<
@@ -38,25 +38,34 @@ export function createReportRepository(db: Database): ReportRepository {
   const run = (query: string, params: (string | number | null)[]) =>
     db.executeAsync(query, params).then(() => undefined);
 
+  const insertQueries = ({ id, description, createdAt, images }: NewReport) => [
+    {
+      query:
+        "INSERT INTO reports (id, description, status, created_at) VALUES (?, ?, 'queued', ?)",
+      params: [id, description, createdAt],
+    },
+    {
+      query:
+        "INSERT INTO images (id, report_id, position, local_uri, size_bytes, status) VALUES (?, ?, ?, ?, ?, 'pending')",
+      params: images.map((image, position) => [
+        image.id,
+        id,
+        position,
+        image.localUri,
+        image.sizeBytes,
+      ]),
+    },
+  ];
+
   return {
-    async create({ id, description, createdAt, images }) {
+    async create(report) {
+      await db.executeBatchAsync(insertQueries(report));
+    },
+
+    async replace(oldId, report) {
       await db.executeBatchAsync([
-        {
-          query:
-            "INSERT INTO reports (id, description, status, created_at) VALUES (?, ?, 'queued', ?)",
-          params: [id, description, createdAt],
-        },
-        {
-          query:
-            "INSERT INTO images (id, report_id, position, local_uri, size_bytes, status) VALUES (?, ?, ?, ?, ?, 'pending')",
-          params: images.map((image, position) => [
-            image.id,
-            id,
-            position,
-            image.localUri,
-            image.sizeBytes,
-          ]),
-        },
+        { query: 'DELETE FROM reports WHERE id = ?', params: [oldId] },
+        ...insertQueries(report),
       ]);
     },
 
