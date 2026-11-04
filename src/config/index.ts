@@ -1,5 +1,6 @@
-// The dev server forwards this port to every adb-connected device, so one address works on emulators and phones.
-export const API_BASE_URL = 'http://localhost:4000';
+import { SERVER_ADDRESS } from './serverAddress';
+
+export const API_BASE_URL = SERVER_ADDRESS;
 
 export const REQUEST_TIMEOUT_MS = 15_000;
 

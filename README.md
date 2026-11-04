@@ -23,9 +23,7 @@ cd server
 npm start
 ```
 
-That is the only server-side step. The backend watches `adb` and makes `localhost:4000` on every connected Android device (emulator, USB or wireless) reach it, and re-opens that link if a device reconnects. The app is configured for `http://localhost:4000` ([src/config/index.ts](src/config/index.ts)), so there is no IP address to look up and nothing to edit, whether you use an emulator or a phone. Plug in or start the device before or after the server, either works.
-
-If `adb` is not installed, or the device is not connected through adb, the server says so on start. Set `API_BASE_URL` to `http://<this machine's LAN IP>:4000` in that case (phone and laptop on the same network). `ADB_TUNNEL=off npm start` turns the forwarding off.
+That is the only server-side step. It prints the machine's Wi-Fi address (`On the same Wi-Fi: http://192.168.x.x:4000`) and watches `adb`: it makes `localhost:4000` on every connected Android device (emulator, USB or wireless) reach the server, and re-opens that link if a device reconnects. The app talks to `http://localhost:4000` by default ([src/config/serverAddress.ts](src/config/serverAddress.ts)), so there is no IP address to look up and nothing to edit. `ADB_TUNNEL=off npm start` turns the forwarding off.
 
 **2. Start Metro and run the app:**
 
@@ -35,6 +33,32 @@ npm run android      # in another terminal
 ```
 
 Cleartext HTTP is allowed in **debug builds only** (Android blocks it in release builds by default), so run the app as a debug build against the local server.
+
+## Test it like the graders (airplane mode)
+
+The default setup reaches the server through `adb`, and a phone on _wireless_ adb drops off adb in airplane mode. So for the airplane-mode scenario there is a second command that builds the app to reach the server over **Wi-Fi** instead, with its JavaScript baked in so it can also cold-start with no Metro:
+
+```sh
+# terminal 1
+cd server && npm start
+
+# terminal 2: build and install the airplane-proof app on every connected phone or emulator
+npm run android:airplane
+
+npm run airplane:on        # file a few reports (one with 5 photos), force-quit and reopen the app
+npm run airplane:off       # leave it alone: every report uploads by itself
+```
+
+What to expect: after `airplane:on` the toast says "No internet connection. Waiting for network...", each new report shows a steady **Waiting for network** chip, and nothing is sent. After `airplane:off` the queue starts straight away and every report ends as **Uploaded**, exactly once.
+
+Notes:
+
+- The phone and the laptop must be on the **same Wi-Fi**. `android:airplane` finds the laptop's address itself and prints it; if it picks the wrong adapter, run `SERVER_HOST=192.168.x.x npm run android:airplane`. If the address changes later, run it again.
+- It warns if nothing answers at that address. Start the server first, and allow Node through the firewall if the OS asks.
+- `airplane:on` and `airplane:off` work on emulators and on phones over USB. A phone on wireless adb disappears from adb in airplane mode, so turn it off on the phone itself. If a phone refuses the command, use the quick settings instead.
+- `npm run android` goes back to the normal setup (Metro and the adb link). The generated address never ends up in git: the script restores `serverAddress.ts` after bundling.
+
+For the other graded scenarios (a connection dropped twice mid-upload, a server that refuses or hangs), use the failure injection below.
 
 **Tests:** `npm test` runs the Jest suite with no UI and no device. `npm run lint` and `npx tsc --noEmit` should both be clean.
 
